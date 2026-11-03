@@ -76,11 +76,24 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 .hand .card{cursor:grab}
 #toasts{position:fixed;left:50%;transform:translateX(-50%);top:70px;z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(520px,94vw)}
 .toast{background:#151522f2;border:2px solid var(--p);border-left-width:6px;border-radius:8px;padding:9px 14px;font-size:14px;box-shadow:0 6px 20px #000b;transition:opacity .4s;width:100%}
-.toast:first-child{opacity:.7}
+.toast.react{border-color:var(--y)}
+.toast{font-weight:600}
 #fab{position:fixed;right:18px;bottom:18px;z-index:35;padding:14px 22px;font-size:16px;border-radius:30px;box-shadow:0 6px 20px #000c;display:none}
 body:not(.is-admin) .admin-only{display:none!important}
 #login .box{max-width:380px}#login input{width:100%;margin:5px 0}
 .gbtn{width:100%;display:flex;gap:8px;align-items:center;justify-content:center;background:#fff;color:#222;font-weight:700}
+.eddz{min-width:180px;min-height:120px;flex:1}
+.sellhint{font-size:11px;margin-top:6px}
+.decklist .dk div{display:block;padding:0;border:0}
+.decklist .dk .ctl{display:none}.decklist .dk .it:hover .ctl{display:flex}
+.decklist .dk{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:5px}
+.dk .it{position:relative;cursor:pointer}
+.dk .it .card{width:100%;min-height:0;aspect-ratio:63/88;font-size:8px;padding:3px}
+.dk .it .card .txt{display:none}
+.dk .n{position:absolute;right:2px;bottom:2px;background:var(--y);color:#000;font-weight:800;border-radius:10px;padding:0 6px;font-size:12px}
+.dk .ctl{position:absolute;inset:auto 0 0 0;display:none;justify-content:space-between}
+.dk .it:hover .ctl{display:flex}
+.dk .ctl button{padding:0 7px;font-size:13px}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -150,7 +163,7 @@ body:not(.is-admin) .admin-only{display:none!important}
    <p class="hint">Clic para añadir · clic derecho (o mantener pulsado) para ampliar · las Legends van a su hueco</p>
    <div class="grid" id="bpool"></div>
   </div>
-  <div class="panel decklist"><h3>Legends</h3><div id="blg"></div><h3>Mazo (<span id="bcnt">0</span>)</h3><div id="bdk"></div></div>
+  <div class="panel decklist" style="max-height:85vh;overflow:auto;position:sticky;top:60px"><h3>Legends</h3><div id="blg"></div><h3>Mazo (<span id="bcnt">0</span>)</h3><div id="bdk"></div></div>
  </div>
 </section>
 
@@ -689,9 +702,9 @@ function drawBuild(){
  $("#bpool").querySelectorAll(".card").forEach(el=>el.oncontextmenu=e=>{e.preventDefault();zoom(byId(el.dataset.id))});$("#bpool").querySelectorAll(".card").forEach(el=>el.onclick=()=>{const c=byId(el.dataset.id);
   if(c.type==="Legend"){if(cur.legends.includes(c.id))return;if(cur.legends.length>=3)cur.legends.shift();cur.legends.push(c.id)}
   else cur.cards.push(c.id);drawBuild()});
- $("#blg").innerHTML=cur.legends.map((i,k)=>`<div><span>${esc(byId(i)?.name)} <span class="hint">${byId(i)?.color} RAM ${byId(i)?.ram}</span></span><button onclick="cur.legends.splice(${k},1);drawBuild()">✕</button></div>`).join("")||'<span class="hint">Elige 3</span>';
+ $("#blg").innerHTML=cur.legends.length?`<div class="dk">${cur.legends.map((i,k)=>`<div class="it" title="${esc(byId(i)?.name)}">${cardHTML(byId(i),"","mini")}<div class="ctl"><span></span><button onclick="cur.legends.splice(${k},1);drawBuild()">✕</button></div></div>`).join("")}</div>`:'<span class="hint">Elige 3</span>';
  const cnt={};cur.cards.forEach(i=>cnt[i]=(cnt[i]||0)+1);
- $("#bdk").innerHTML=Object.entries(cnt).map(([i,n])=>`<div><span>${n}× ${esc(byId(i)?.name||i)}</span><span><button onclick="cur.cards.push('${i}');drawBuild()">+</button><button onclick="cur.cards.splice(cur.cards.indexOf('${i}'),1);drawBuild()">−</button></span></div>`).join("");
+ $("#bdk").innerHTML=`<div class="dk">${Object.entries(cnt).sort((a,b)=>(byId(a[0])?.cost||0)-(byId(b[0])?.cost||0)).map(([i,n])=>`<div class="it" title="${esc(byId(i)?.name||i)}">${cardHTML(byId(i),"","mini")}<span class="n">${n}</span><div class="ctl"><button onclick="cur.cards.splice(cur.cards.indexOf('${i}'),1);drawBuild()">−</button><button onclick="cur.cards.push('${i}');drawBuild()">+</button></div></div>`).join("")}</div>`;
  $("#bcnt").textContent=cur.cards.length;
  const e=validate(cur);$("#dval").innerHTML=e.length?e.map(x=>`<div class="bad">✕ ${esc(x)}</div>`).join(""):'<div class="ok">✓ Mazo legal</div>';
 }
@@ -708,8 +721,10 @@ $("#creset").onclick=()=>{CARDS=OFFICIAL.map(prep);try{localStorage.removeItem("
 let G=null;let uid=0;
 const rnd=n=>1+Math.floor(Math.random()*n);
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-function log(m){G.log.unshift(m);if(G.log.length>200)G.log.pop();if(G.p&&G.p[G.cur]&&G.p[G.cur].bot&&!/^— Turno/.test(m))toast(m)}
-function toast(m){const box=$("#toasts");const d=document.createElement("div");d.className="toast";d.textContent=m.trim();box.appendChild(d);while(box.children.length>4)box.firstChild.remove();setTimeout(()=>{d.style.opacity="0";setTimeout(()=>d.remove(),400)},3200)}
+function log(m){G.log.unshift(m);if(G.log.length>200)G.log.pop();if(!G.p||/^— Turno/.test(m))return;
+ const bot=G.p.find(q=>q.bot);if(bot&&(G.p[G.cur].bot||m.includes(bot.name)))toast(m,G.p[G.cur].bot?"":"r");
+ if(!bot){(G.turnLog=G.turnLog||[]).push(m)}}
+function toast(m,k){const box=$("#toasts");const d=document.createElement("div");d.className="toast"+(k==="r"?" react":"");d.textContent=m.trim();box.appendChild(d);while(box.children.length>5)box.firstChild.remove();setTimeout(()=>{d.style.opacity="0";setTimeout(()=>d.remove(),400)},5000)}
 function inst(id){return{uid:++uid,c:byId(id),spent:false,lag:false,tmp:0,gear:[],solo:false}}
 function newPlayer(deck,name,bot){
  const p={name,bot,deck:shuffle(deck.cards.map(inst)),hand:[],field:[],eddies:[],legends:shuffle(deck.legends.map(id=>({...inst(id),face:false}))),
@@ -771,7 +786,7 @@ function endTurn(){
  G.p.forEach(q=>q.field.forEach(u=>{u.tmp=0;u.lag=false;u.grant=[]}));p.temp=0;G.sel=null;G.mode=null;
  if(!G.overtime&&!G.p[0].fixer.length&&!G.p[1].fixer.length&&G.p[0].turns>=7&&G.p[1].turns>=7){G.overtime=true;log("⚠ ¡OVERTIME! Quien tenga 7 Gigs en cualquier momento gana.");checkOvertime();if(G.over)return}
  G.cur=1-G.cur;
- if(!G.p[0].bot&&!G.p[1].bot&&!G.over){render();modal(`<h2>Turno de ${me().name}</h2><p>Pasa el dispositivo.</p><button class="pri" onclick="closeModal();startTurn()">Listo</button>`);return}
+ if(!G.p[0].bot&&!G.p[1].bot&&!G.over){render();const tl=(G.turnLog||[]).slice(-14);G.turnLog=[];modal(`<h2>Turno de ${me().name}</h2>${tl.length?`<h3>Lo que hizo tu rival</h3><div style="font-size:13px;max-height:40vh;overflow:auto">${tl.map(x=>`<div>• ${esc(x.trim())}</div>`).join("")}</div>`:""}<p>Pasa el dispositivo.</p><button class="pri" onclick="closeModal();startTurn()">Listo</button>`);return}
  startTurn();
 }
 function end(w){if(G.over)return;G.over=true;log(`🏆 ¡${G.p[w].name} es la nueva Leyenda de Night City!`);render();modal(`<h2>🏆 ${G.p[w].name} gana</h2><p>Gigs: ${G.p[0].name} ${G.p[0].gigs.length} – ${G.p[1].name} ${G.p[1].gigs.length}</p><button class="pri" onclick="closeModal();location.reload()">Nueva partida</button> <button onclick="closeModal()">Ver tablero</button>`)}
@@ -1048,7 +1063,7 @@ function render(){
  if(G.sel&&!G.mode){const s=G.sel;const b=bp;
   if(s.z==="hand"){const x=p.hand.find(h=>h.uid===s.uid);if(x){
    b(`Jugar (${effCost(p,x.c)}€$)`,()=>{if(x.c.type==="Gear"){G.mode="gear";render();return}playCard(p,x);G.sel=null;render()},!canPlay(p,x)||(x.c.type==="Program"&&has(x,"Quick")&&false));
-   b("Vender como Eddie",()=>{sell(p,x);G.sel=null;render()},p.sold||!x.c.sell);}}
+   b(!x.c.sell?"Vender (esta carta no tiene €$)":p.sold?"Vender (ya vendiste este turno)":"💰 Vender como Eddie",()=>{sell(p,x);G.sel=null;render()},p.sold||!x.c.sell);}}
   if(s.z==="field"){const u=p.field.find(f=>f.uid===s.uid);if(u){
    b("Atacar Gigs rivales",()=>{G.sel=null;attack(p,u,"gigs")},!canAttack(p,u)||!canHitGigs(p,u));
    b("Atacar una Unit agotada…",()=>{G.mode="atk";render()},!canAttack(p,u)||!rival().field.some(x=>x.spent));
@@ -1078,7 +1093,7 @@ function renderPlayer(p,mine,idx){
  return `<div class="side"><b style="color:${mine?"var(--c)":"var(--p)"}">${p.name}${isCur?" ◀":""}</b><span class="stat">Gigs <b>${p.gigs.length}</b> · Street Cred <b>${cred(p)}</b> · Mazo ${p.deck.length} · Trash ${p.trash.length} · Mano ${p.hand.length}</span></div>
  <div class="zone"><div class="lbl">Gigs</div>${gigs}</div>
  <div class="zone"><div class="lbl">Fixer</div>${fixer||'<span class="hint">vacío</span>'}</div>
- <div class="row"><div class="zone"><div class="lbl">Legends</div><div class="row">${legs}</div></div><div class="zone" ${show&&isCur?'data-drop="eddies"':""}><div class="lbl">Eddies</div>${eds}</div></div>
+ <div class="row"><div class="zone"><div class="lbl">Legends</div><div class="row">${legs}</div></div><div class="zone eddz" ${show&&isCur?'data-drop="eddies"':""}><div class="lbl">Eddies</div>${eds}${show&&isCur&&!p.sold?'<div class="hint sellhint">⬇ Arrastra aquí una carta con €$ para venderla</div>':""}</div></div>
  <div class="zone" ${show&&isCur?'data-drop="field"':""}><div class="lbl">Campo</div><div class="row">${field}</div></div>
  <div class="zone"><div class="lbl">Mano</div><div class="row hand">${hand}</div></div>`;
 }
@@ -1109,7 +1124,7 @@ document.addEventListener("dragend",()=>{DRAG=null;document.querySelectorAll(".d
 document.addEventListener("dragover",e=>{if(DRAG!=null&&(e.target.closest("[data-drop]")||e.target.closest('#game [data-z="field"],#game [data-z="leg"]')))e.preventDefault()});
 document.addEventListener("drop",e=>{if(DRAG==null)return;e.preventDefault();const p=me();const x=p.hand.find(h=>h.uid===DRAG);DRAG=null;document.querySelectorAll(".drop").forEach(z=>z.classList.remove("drop"));if(!x||G.mode==="gig")return;
  const host=e.target.closest('#game [data-z="field"],#game [data-z="leg"]');const zone=e.target.closest("[data-drop]");
- if(zone&&zone.dataset.drop==="eddies"){if(p.sold){log("Ya has vendido una carta este turno.")}else if(!x.c.sell){log(`${x.c.name} no se puede vender.`)}else sell(p,x)}
+ if(zone&&zone.dataset.drop==="eddies"){if(p.sold){toast("Ya has vendido una carta este turno.","r")}else if(!x.c.sell){toast(`${x.c.name} no tiene €$: no se puede vender.`,"r")}else sell(p,x)}
  else{if(!canPlay(p,x)){log(`No tienes €$ suficientes para ${x.c.name}.`)}
   else if(x.c.type==="Gear"){const h=host&&(+host.dataset.p===G.cur)?(p.field.find(f=>f.uid===+host.dataset.u)||p.legends.find(l=>l.uid===+host.dataset.u&&l.face)):null;playCard(p,x,h||undefined)}
   else playCard(p,x)}
