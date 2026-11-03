@@ -78,7 +78,14 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 .toast{background:#151522f2;border:2px solid var(--p);border-left-width:6px;border-radius:8px;padding:9px 14px;font-size:14px;box-shadow:0 6px 20px #000b;transition:opacity .4s;width:100%}
 .toast:first-child{opacity:.7}
 #fab{position:fixed;right:18px;bottom:18px;z-index:35;padding:14px 22px;font-size:16px;border-radius:30px;box-shadow:0 6px 20px #000c;display:none}
+body:not(.is-admin) .admin-only{display:none!important}
+#login .box{max-width:380px}#login input{width:100%;margin:5px 0}
+.gbtn{width:100%;display:flex;gap:8px;align-items:center;justify-content:center;background:#fff;color:#222;font-weight:700}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>window.FB_CONFIG={apiKey:"AIzaSyCDXetxLBkAreO3ATuR4LeSwLIekg5usXU",authDomain:"la-orden-del-friki.firebaseapp.com",projectId:"la-orden-del-friki",storageBucket:"la-orden-del-friki.firebasestorage.app",messagingSenderId:"333983094933",appId:"1:333983094933:web:48a123886e291d92b3a39c"};</script>
 </head>
 <body>
 <header>
@@ -87,6 +94,7 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 <button class="tab" data-t="build">Constructor de mazos</button>
 <button class="tab" data-t="db">Base de cartas</button>
 <button class="tab" data-t="rules">Reglas</button>
+<span style="flex:1"></span><span id="acct" class="hint"></span><button id="loginBtn">👤 Iniciar sesión</button>
 </header>
 
 <!-- ============ PLAY ============ -->
@@ -150,9 +158,9 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 <section id="db">
  <div class="panel">
   <h2>Base de datos de cartas</h2>
-  <p class="hint">Incluye las 151 cartas oficiales de Welcome to Night City. ✓ = efecto 100% automático · ⚠ = parte del texto se resuelve con 🛠 Herramientas durante la partida. Puedes <b>importar</b> la lista de cartas oficial (o ampliarla) pegando JSON con este formato. Los efectos usan un mini-lenguaje que el motor ejecuta solo.</p>
-  <div class="row" style="align-items:center"><label class="pri" style="background:var(--y);color:#000;padding:7px 11px;border-radius:6px;cursor:pointer;font-weight:700">🖼 Cargar imágenes de cartas<input type="file" accept="image/*" multiple style="display:none" onchange="addImgs([...this.files])"></label><span class="hint" id="imgRes">Nombra cada archivo como la carta (p. ej. «V Streetkid.webp» o «CP001.webp»). Se guardan en este navegador.</span></div><div class="row" style="margin-top:6px"><button id="cexp">Exportar base</button><button id="cimp" class="pri">Importar / añadir cartas</button><button id="creset">Quitar cartas añadidas</button></div>
-  <details style="margin-top:8px"><summary>Formato de carta y efectos disponibles</summary>
+  <p class="hint">Incluye las 151 cartas oficiales de Welcome to Night City. ✓ = efecto 100% automático · ⚠ = parte del texto se resuelve con 🛠 Herramientas durante la partida. <span class="admin-only">Puedes <b>importar</b> cartas pegando JSON con este formato.</span></p>
+  <div class="row admin-only" style="align-items:center"><label class="pri" style="background:var(--y);color:#000;padding:7px 11px;border-radius:6px;cursor:pointer;font-weight:700">🖼 Cargar imágenes de cartas<input type="file" accept="image/*" multiple style="display:none" onchange="addImgs([...this.files])"></label><span class="hint" id="imgRes">Nombra cada archivo como la carta (p. ej. «V Streetkid.webp» o «CP001.webp»). Se guardan en este navegador.</span></div><div class="row admin-only" style="margin-top:6px"><button id="cexp">Exportar base</button><button id="cimp" class="pri">Importar / añadir cartas</button><button id="creset">Quitar cartas añadidas</button></div>
+  <details class="admin-only" style="margin-top:8px"><summary>Formato de carta y efectos disponibles</summary>
 <pre style="white-space:pre-wrap;font-size:12px">{"id":"X01","name":"Nombre","type":"Unit|Legend|Program|Gear","color":"red|blue|green|yellow",
  "cost":3,"power":5,"ram":1,"sell":true,"keywords":["Blocker","Adrenaline","Quick","GoSolo"],
  "fx":[{"on":"play|call|attack|defeated|solo|static","do":"draw","n":1}], "text":"texto visible"}
@@ -184,7 +192,12 @@ Acciones (do): draw n · buff n (esta carta +n poder este turno) · buffAll n (t
 <p class="hint">Fuente: Comprehensive Rules oficiales (cyberpunktcg.com, actualizadas 29/10/2026). Si una carta contradice la regla, manda la carta.</p>
 </div></section>
 
-<div id="toasts"></div><button id="fab" class="pri">Terminar turno ▶</button><div id="hov"></div><div id="pop"></div><div id="modal"><div class="box" id="mbox"></div></div>
+<div id="toasts"></div><button id="fab" class="pri">Terminar turno ▶</button><div id="hov"></div><div id="login" style="position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:50"><div class="box panel" style="width:94%">
+<h2>Tu cuenta</h2><p class="hint">Inicia sesión para guardar tus mazos en la nube y tenerlos en cualquier dispositivo. Es la misma cuenta que La Orden Brawl.</p>
+<button class="gbtn" id="lgG">🟢 Entrar con Google</button><p class="hint" style="text-align:center">o con tu email</p>
+<input id="lgE" type="email" placeholder="Email" autocomplete="email"><input id="lgP" type="password" placeholder="Contraseña (mínimo 6)" autocomplete="current-password">
+<div class="row"><button class="pri" id="lgIn">Entrar</button><button id="lgUp">Crear cuenta</button><button id="lgRe">¿Olvidaste la contraseña?</button></div>
+<p class="hint" id="lgMsg"></p><button id="lgX">Cerrar</button></div></div><div id="pop"></div><div id="modal"><div class="box" id="mbox"></div></div>
 
 <script>
 /* ================= STORAGE ================= */
@@ -592,7 +605,8 @@ const PRESETS=[
  autoDeck("Auto · Rojo/Verde Arasaka",["Yorinobu Arasaka","Saburo Arasaka","Goro Takemura: Hands Unclean"]),
 ];
 let DECKS=LS.get("cp_decks2",null)||PRESETS;
-const saveDecks=()=>LS.set("cp_decks2",DECKS);
+let CLOUD=null;
+const saveDecks=()=>{LS.set("cp_decks2",DECKS);if(CLOUD)CLOUD.save()};
 
 /* ================= UI HELPERS ================= */
 const $=s=>document.querySelector(s);
@@ -1102,6 +1116,37 @@ document.addEventListener("drop",e=>{if(DRAG==null)return;e.preventDefault();con
  G.sel=null;render()});
 document.addEventListener("click",e=>{if(!e.target.closest("#pop")&&!e.target.closest("#game [data-z]")&&$("#pop").style.display==="flex"){$("#pop").style.display="none"}});
 document.addEventListener("scroll",()=>$("#pop").style.display="none",true);
+/* ===== Cuenta (Firebase, la misma que La Orden Brawl) ===== */
+const ADMIN_EMAIL="infolaordendelfriki@gmail.com";
+(function(){if(!window.firebase||!window.FB_CONFIG){$("#loginBtn").style.display="none";return}
+ try{firebase.initializeApp(FB_CONFIG)}catch(e){}
+ const auth=firebase.auth(),fs=firebase.firestore();
+ const ERR={"auth/invalid-email":"Ese email no es válido.","auth/invalid-credential":"Email o contraseña incorrectos.","auth/wrong-password":"Contraseña incorrecta.","auth/user-not-found":"No hay cuenta con ese email.","auth/email-already-in-use":"Ya existe una cuenta con ese email. Pulsa «Entrar».","auth/weak-password":"La contraseña necesita al menos 6 caracteres.","auth/popup-closed-by-user":"Has cerrado la ventana de Google.","auth/network-request-failed":"Sin conexión.","auth/unauthorized-domain":"Este dominio no está autorizado en Firebase."};
+ const msg=e=>$("#lgMsg").textContent=ERR[e&&e.code]||("No se ha podido: "+((e&&e.message)||e));
+ const L=$("#login"),open=()=>L.style.display="flex",close=()=>L.style.display="none";
+ auth.getRedirectResult().catch(msg);
+ $("#lgX").onclick=close;
+ $("#lgG").onclick=()=>{const pr=new firebase.auth.GoogleAuthProvider();auth.signInWithPopup(pr).then(close).catch(e=>{if(/popup-blocked|not-supported/.test(e.code))auth.signInWithRedirect(pr);else msg(e)})};
+ $("#lgIn").onclick=()=>auth.signInWithEmailAndPassword($("#lgE").value.trim(),$("#lgP").value).then(close).catch(msg);
+ $("#lgUp").onclick=()=>auth.createUserWithEmailAndPassword($("#lgE").value.trim(),$("#lgP").value).then(close).catch(msg);
+ $("#lgRe").onclick=()=>auth.sendPasswordResetEmail($("#lgE").value.trim()).then(()=>$("#lgMsg").textContent="Te hemos enviado un email para cambiarla.").catch(msg);
+ let user=null;
+ const refs=u=>[fs.collection("nightcity").doc(u.uid),fs.collection("players").doc(u.uid)];
+ let t=null;
+ CLOUD={save(){if(!user)return;clearTimeout(t);t=setTimeout(async()=>{const data=JSON.parse(JSON.stringify(DECKS));
+  const [a,b]=refs(user);try{await a.set({decks:data,at:Date.now(),email:user.email||""},{merge:true})}catch(e){try{await b.set({ncDecks:data},{merge:true})}catch(e2){console.warn(e2);toast("No se han podido guardar los mazos en la nube.")}}},600)}};
+ $("#loginBtn").onclick=()=>{if(user){if(confirmBox("¿Cerrar sesión?"))auth.signOut()}else open()};
+ auth.onAuthStateChanged(async u=>{user=u;document.body.classList.toggle("is-admin",!!(u&&u.email&&u.email.toLowerCase()===ADMIN_EMAIL));
+  if(!u){$("#acct").textContent="";$("#loginBtn").textContent="👤 Iniciar sesión";return}
+  $("#acct").textContent="👤 "+(u.displayName||(u.email||"").split("@")[0]);$("#loginBtn").textContent="Cerrar sesión";
+  const [a,b]=refs(u);let cloud=null;
+  try{const d=await a.get();if(d.exists&&d.data().decks)cloud=d.data().decks}catch(e){}
+  if(!cloud){try{const d=await b.get();if(d.exists&&d.data().ncDecks)cloud=d.data().ncDecks}catch(e){}}
+  if(cloud&&cloud.length){DECKS=cloud;LS.set("cp_decks2",DECKS);cur=null;fillDeckSelects();if($("#build").classList.contains("on"))renderBuild();toast("Mazos cargados de tu cuenta ("+cloud.length+").")}
+  else CLOUD.save();
+ });
+})();
+function confirmBox(q){return window.confirm?(()=>{try{return confirm(q)}catch(e){return true}})():true}
 fillDeckSelects();loadImgs();
 </script>
 </body>
