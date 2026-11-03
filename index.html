@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night City Simulator – La Orden del Friki</title>
+<style>
+:root{--bg:#0b0b12;--panel:#151522;--line:#2b2b40;--y:#f5e600;--p:#ff2a6d;--c:#05d9e8;--t:#e8e8f0;--m:#8a8aa3;
+--red:#ff4d4d;--blue:#3d8bff;--green:#33d17a;--yellow:#ffd23f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px}
+header{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:2px solid var(--y);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
+header h1{font-size:17px;margin:0 12px 0 0;color:var(--y);letter-spacing:1px;text-transform:uppercase}
+button{background:var(--panel);color:var(--t);border:1px solid var(--line);padding:7px 11px;border-radius:6px;cursor:pointer;font:inherit}
+button:hover{border-color:var(--c)}button.pri{background:var(--y);color:#000;border-color:var(--y);font-weight:700}
+button.tab.on{border-color:var(--y);color:var(--y)}button:disabled{opacity:.4;cursor:default}
+section{display:none;padding:12px}section.on{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+h2{color:var(--c);font-size:16px;margin:4px 0 10px}h3{font-size:14px;color:var(--y);margin:12px 0 6px}
+input,select,textarea{background:#0f0f19;color:var(--t);border:1px solid var(--line);border-radius:6px;padding:7px;font:inherit}
+textarea{width:100%;min-height:120px;font-family:monospace;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.card{position:relative;background:#10101a;border:2px solid var(--line);border-radius:9px;padding:7px;min-height:150px;cursor:pointer;display:flex;flex-direction:column;gap:3px;font-size:12px;transition:.1s}
+.card:hover{transform:translateY(-2px)}
+.card.red{border-color:var(--red)}.card.blue{border-color:var(--blue)}.card.green{border-color:var(--green)}.card.yellow{border-color:var(--yellow)}
+.card .top{display:flex;justify-content:space-between;align-items:center}
+.cost{background:var(--y);color:#000;font-weight:800;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.sell{color:var(--y);font-size:10px;font-weight:700}
+.type{font-size:10px;color:var(--m);text-transform:uppercase}
+.name{font-weight:700;font-size:12.5px}
+.txt{color:#c9c9d8;font-size:11px;flex:1}
+.pow{position:absolute;right:6px;bottom:5px;font-weight:800;font-size:15px;color:var(--p)}
+.kw{color:var(--c);font-weight:700}
+.mini{min-height:110px;width:118px;font-size:11px}
+.spent{transform:rotate(8deg);opacity:.65}.spent:hover{transform:rotate(8deg)}
+.lag::after{content:"LAG";position:absolute;top:30px;right:4px;font-size:9px;background:#444;padding:1px 4px;border-radius:3px}
+.sel{outline:3px solid var(--c)}.tgt{outline:3px dashed var(--p)}
+.facedown{background:repeating-linear-gradient(45deg,#1b1b2b,#1b1b2b 6px,#232338 6px,#232338 12px);display:flex;align-items:center;justify-content:center;color:var(--y);font-weight:800}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;min-height:60px}
+.zone{border:1px dashed var(--line);border-radius:8px;padding:6px;margin:4px 0}
+.zone .lbl{font-size:10px;color:var(--m);text-transform:uppercase;margin-bottom:4px}
+.die{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:44px;height:44px;border:2px solid var(--c);border-radius:8px;margin:2px;font-weight:800;font-size:16px}
+.die small{font-size:9px;color:var(--m);font-weight:400}
+.die.fx{border-color:var(--m);color:var(--m)}.die.pick{cursor:pointer;border-color:var(--y)}
+.side{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.stat{font-size:13px}.stat b{color:var(--y)}
+#log{height:160px;overflow:auto;font-size:12px;font-family:monospace;background:#08080e;border:1px solid var(--line);border-radius:6px;padding:6px}
+#log div{border-bottom:1px solid #15151f;padding:2px 0}
+.board{display:grid;grid-template-columns:1fr 260px;gap:12px}
+@media(max-width:900px){.board{grid-template-columns:1fr}}
+.opp{border-color:var(--p)}.me{border-color:var(--c)}
+.hint{color:var(--m);font-size:12px}
+.bad{color:var(--p)}.ok{color:var(--green)}
+#modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:20}
+#modal .box{background:var(--panel);border:2px solid var(--y);border-radius:12px;padding:16px;max-width:640px;width:94%;max-height:86vh;overflow:auto}
+.decklist div{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--line)}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:5px;text-align:left;vertical-align:top}
+.rules p,.rules li{line-height:1.5}
+.card.img{padding:0;overflow:hidden;min-height:0;aspect-ratio:63/88;background:#000}
+.card.img img{width:100%;height:100%;object-fit:cover;display:block}
+.card.img.mini{width:118px;min-height:0}
+.card.img .man{position:absolute;top:3px;right:4px;font-size:12px;background:#000a;border-radius:4px;padding:0 3px}
+.pbadge{position:absolute;right:4px;bottom:4px;font-weight:800;font-size:16px;background:#000c;border:2px solid var(--p);border-radius:6px;padding:0 5px}
+.pbadge.up{border-color:var(--green);color:var(--green)}.pbadge.down{color:var(--p)}
+.card.img.lag::after{top:auto;bottom:4px;left:4px;right:auto}
+.hand .card.mini{width:78px;min-height:0}
+.hand .card.mini:not(.img){min-height:105px;font-size:9px;padding:4px}
+.hand .card.mini:not(.img) .txt{display:none}
+#hov{position:fixed;z-index:30;display:none;pointer-events:none;width:300px;background:var(--panel);border:2px solid var(--y);border-radius:12px;padding:10px;box-shadow:0 8px 30px #000c}
+#hov img{width:100%;border-radius:10px;display:block;margin-bottom:8px}
+#hov .card{min-height:0;cursor:default}
+@media(hover:none){#hov{display:none!important}}
+.card.dim{opacity:.6}
+#pop{position:fixed;z-index:25;display:none;flex-direction:column;gap:5px;background:var(--panel);border:2px solid var(--c);border-radius:10px;padding:8px;box-shadow:0 8px 30px #000c;min-width:190px}
+#pop button{text-align:left}
+.drop{outline:2px dashed var(--y);background:#f5e60012}
+.hand .card{cursor:grab}
+#toasts{position:fixed;left:50%;transform:translateX(-50%);top:70px;z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(520px,94vw)}
+.toast{background:#151522f2;border:2px solid var(--p);border-left-width:6px;border-radius:8px;padding:9px 14px;font-size:14px;box-shadow:0 6px 20px #000b;transition:opacity .4s;width:100%}
+.toast:first-child{opacity:.7}
+#fab{position:fixed;right:18px;bottom:18px;z-index:35;padding:14px 22px;font-size:16px;border-radius:30px;box-shadow:0 6px 20px #000c;display:none}
+</style>
+</head>
+<body>
+<header>
+<h1>⚡ Night City Simulator</h1>
+<button class="tab on" data-t="play">Jugar</button>
+<button class="tab" data-t="build">Constructor de mazos</button>
+<button class="tab" data-t="db">Base de cartas</button>
+<button class="tab" data-t="rules">Reglas</button>
+</header>
+
+<!-- ============ PLAY ============ -->
+<section id="play" class="on">
+ <div class="panel" id="setup">
+  <h2>Nueva partida</h2>
+  <div class="row" style="align-items:center">
+   <label>Modo <select id="mode"><option value="bot">Contra el bot</option><option value="hot">2 jugadores (mismo dispositivo)</option></select></label>
+   <label>Mazo J1 <select id="deck1"></select></label>
+   <label>Mazo J2 / Bot <select id="deck2"></select></label>
+   <label>Bot <select id="botlvl"><option value="1">Normal</option><option value="2">Agresivo</option></select></label>
+   <button class="pri" id="startBtn">Empezar</button>
+  </div>
+  <p class="hint">Todo es automático: robo, Gig por turno, LAG, pagos, combates, robo de Gigs, efectos de cartas, victoria por 7 Gigs, Overtime y deck-out.</p>
+ </div>
+ <div id="game" style="display:none">
+  <div class="board">
+   <div>
+    <div class="panel opp" id="pTop"></div>
+    <div class="panel me" id="pBot"></div>
+   </div>
+   <div>
+    <div class="panel">
+     <div class="stat" id="turnInfo"></div>
+     <div class="row" style="margin-top:8px" id="actions"></div>
+     <p class="hint" id="help"></p>
+    </div>
+    <div class="panel"><div class="lbl hint">Registro</div><div id="log"></div></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- ============ BUILD ============ -->
+<section id="build">
+ <div class="panel">
+  <h2>Constructor de mazos</h2>
+  <div class="row" style="align-items:center">
+   <input id="dname" placeholder="Nombre del mazo" style="width:200px">
+   <select id="dsel"></select>
+   <button id="dnew">Nuevo</button><button id="dsave" class="pri">Guardar</button><button id="ddel">Borrar</button>
+   <button id="dexp">Exportar</button><button id="dimp">Importar</button>
+  </div>
+  <p class="hint">Reglas: exactamente 3 Legends de nombre único · 40-50 cartas · máx. 3 copias · RAM por color ≤ suma de RAM de tus Legends de ese color.</p>
+  <div id="dval"></div>
+ </div>
+ <div style="display:grid;grid-template-columns:1fr 300px;gap:12px">
+  <div class="panel">
+   <div class="row" style="align-items:center">
+    <input id="bq" placeholder="Buscar…"><select id="bc"><option value="">Todos los colores</option><option>red</option><option>blue</option><option>green</option><option>yellow</option></select>
+    <select id="bt"><option value="">Todos los tipos</option><option>Legend</option><option>Unit</option><option>Program</option><option>Gear</option></select>
+   </div>
+   <p class="hint">Clic para añadir · clic derecho (o mantener pulsado) para ampliar · las Legends van a su hueco</p>
+   <div class="grid" id="bpool"></div>
+  </div>
+  <div class="panel decklist"><h3>Legends</h3><div id="blg"></div><h3>Mazo (<span id="bcnt">0</span>)</h3><div id="bdk"></div></div>
+ </div>
+</section>
+
+<!-- ============ DB ============ -->
+<section id="db">
+ <div class="panel">
+  <h2>Base de datos de cartas</h2>
+  <p class="hint">Incluye las 151 cartas oficiales de Welcome to Night City. ✓ = efecto 100% automático · ⚠ = parte del texto se resuelve con 🛠 Herramientas durante la partida. Puedes <b>importar</b> la lista de cartas oficial (o ampliarla) pegando JSON con este formato. Los efectos usan un mini-lenguaje que el motor ejecuta solo.</p>
+  <div class="row" style="align-items:center"><label class="pri" style="background:var(--y);color:#000;padding:7px 11px;border-radius:6px;cursor:pointer;font-weight:700">🖼 Cargar imágenes de cartas<input type="file" accept="image/*" multiple style="display:none" onchange="addImgs([...this.files])"></label><span class="hint" id="imgRes">Nombra cada archivo como la carta (p. ej. «V Streetkid.webp» o «CP001.webp»). Se guardan en este navegador.</span></div><div class="row" style="margin-top:6px"><button id="cexp">Exportar base</button><button id="cimp" class="pri">Importar / añadir cartas</button><button id="creset">Quitar cartas añadidas</button></div>
+  <details style="margin-top:8px"><summary>Formato de carta y efectos disponibles</summary>
+<pre style="white-space:pre-wrap;font-size:12px">{"id":"X01","name":"Nombre","type":"Unit|Legend|Program|Gear","color":"red|blue|green|yellow",
+ "cost":3,"power":5,"ram":1,"sell":true,"keywords":["Blocker","Adrenaline","Quick","GoSolo"],
+ "fx":[{"on":"play|call|attack|defeated|solo|static","do":"draw","n":1}], "text":"texto visible"}
+
+Acciones (do): draw n · buff n (esta carta +n poder este turno) · buffAll n (tus Units) · gearPow n (Gear: +n al portador)
+ defeat n (destruye Unit rival con poder ≤ n) · defeatSpent (destruye Unit rival agotada) · weaken n (Unit rival −n este turno)
+ eddie n (gana n €$ temporales) · readyUnit (prepara una Unit tuya) · bumpGig n (sube n tu dado de Gig más bajo, máx. sus caras)
+ dropGig n (baja n el dado rival más alto) · reroll (relanza tu dado más bajo) · stealGig (roba 1 Gig rival) · trashHand (rival descarta 1 al azar)
+ Condición opcional: "cred":12  (solo si tu Street Cred ≥ 12)</pre></details>
+  <div class="row" style="margin-top:8px"><input id="dbq" placeholder="Buscar…"></div>
+ </div>
+ <div class="grid" id="dbgrid"></div>
+</section>
+
+<!-- ============ RULES ============ -->
+<section id="rules"><div class="panel rules">
+<h2>Cómo se juega (resumen de la guía oficial)</h2>
+<h3>Objetivo</h3><ul><li>Tener <b>7 Gigs</b> (dados) al empezar tu turno → ganas.</li><li><b>Overtime</b>: empieza cuando ambos jugadores han vaciado su Fixer (normalmente tras 7 turnos cada uno). Desde entonces, quien tenga 7 Gigs en cualquier momento gana al instante.</li><li>Si debes robar y tu mazo está vacío, pierdes.</li><li>Cuenta el número de dados, no su valor. La suma de valores es tu <b>Street Cred</b>, que activan algunas cartas.</li></ul>
+<h3>Preparación</h3><ul><li>3 Legends boca abajo en orden aleatorio. Barajar. Robar 6 (un mulligan permitido).</li><li>Dados d4, d6, d8, d10, d12, d20 en tu zona Fixer.</li><li>El que empieza tiene sus 2 Legends de la izquierda agotadas en su primer turno.</li></ul>
+<h3>Turno</h3><ol><li><b>Ready</b>: preparas todo.</li><li><b>Draw</b>: robas 1.</li><li><b>Gain a Gig</b>: eliges un dado del Fixer, lo tiras y va a tu zona de Gigs (el d20 siempre el último).</li><li><b>Fase principal</b>, en cualquier orden:<ul>
+<li><b>Vender</b> (1/turno): una carta con €$ va boca abajo a Eddies. Cada Eddie vale 1 €$ por turno.</li>
+<li><b>Jugar cartas</b> pagando su coste con Eddies y/o Legends (cada Legend paga 1 €$; boca arriba solo si tiene €$). Las Units (y las Legends en Go Solo) entran con <b>Lag</b>: no atacan ni activan efectos este turno.</li>
+<li><b>Call a Legend</b> (1/turno, también al ser atacado): paga 1 €$ y gira una Legend al azar boca arriba; se activa su efecto Call.</li>
+<li><b>Atacar</b>: agota una Unit y ataca a una Unit rival <i>agotada</i> (pelea) o a la zona de Gigs rival (robas 1 Gig + 1 por cada 10 de poder).</li></ul></li></ol>
+<h3>Reacciones del rival</h3><ul><li><b>Blocker</b>: agota esa Unit para redirigir el ataque hacia ella. Si se redirige, no se roban Gigs.</li><li><b>Quick</b>: Programs/efectos que se usan al ser atacado.</li></ul>
+<h3>Peleas</h3><p>Gana el de mayor poder; en empate pierden los dos. Una Unit con poder 0 no derrota a nadie.</p>
+<h3>Palabras clave</h3><ul><li><b>Adrenaline</b>: ataca el turno que entra.</li><li><b>Go Solo</b>: paga el coste de la Legend para bajarla como Unit lista que ataca ya; si deja el campo, se exilia.</li><li><b>Quick</b> y <b>Blocker</b>: ver arriba.</li></ul>
+<h3>Construcción</h3><p>3 Legends únicas, 40-50 cartas, máx. 3 copias, y la RAM de cada carta en su color ≤ RAM total de tus Legends de ese color.</p>
+<p class="hint">Fuente: Comprehensive Rules oficiales (cyberpunktcg.com, actualizadas 29/10/2026). Si una carta contradice la regla, manda la carta.</p>
+</div></section>
+
+<div id="toasts"></div><button id="fab" class="pri">Terminar turno ▶</button><div id="hov"></div><div id="pop"></div><div id="modal"><div class="box" id="mbox"></div></div>
+
+<script>
+/* ================= STORAGE ================= */
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+// Base de datos oficial Cyberpunk TCG (cyberpunktcg.com/cards · Netdeck.gg) — 151 cartas
+// [nombre, subtítulo, color, tipo, coste, poder, RAM, vendible, tags, texto]
+const RAW=[
+["V","Streetkid","R","L",5,6,2,1,"Merc","{Call} Trash 3. Then, add 1 BRAINDANCE Program from your trash to your hand.\n{Go Solo}"],
+["Royce","Psycho on the Edge","R","L",6,6,2,1,"Maelstrom/Ganger","{Go Solo}\nDuring your turn, this Legend has +2 power for each of its equipped Gear."],
+["Adam Smasher","Ender of Legends","R","L",9,9,2,1,"Arasaka/Merc","{Go Solo}\n{Play} Defeat a rival Unit."],
+["Dexter DeShawn","Off the Grid","R","L",null,null,2,1,"Fixer","{Call} Choose one effect.\nGive a friendly Unit +2 power this turn. // Draw 1.\n{Spend}: Increase a Gig by up to 2."],
+["Johnny Silverhand","Rocking Renegade","R","L",null,null,2,1,"Merc/Rocker/Samurai","2 €$, {Spend} A friendly Unit can attack spent rival Units the turn it's played. If it's a ROCKER Unit, also give it +2 power this turn. This effect costs -1 €$ for each friendly Gig with 8+ value."],
+["Rebecca","Having a Moment","R","L",null,null,null,0,"",""],
+["Yorinobu Arasaka","Embracing Destruction","R","L",null,null,2,1,"Arasaka/Corpo","The first time a friendly ARASAKA Unit attacks each turn, draw 1. Then, if you have less than 20 Street Cred, discard 1."],
+["Japantown Jonin","","R","U",2,0,2,0,"Tyger Claws","{Play} Give a friendly Unit +2 power this turn."],
+["Ruthless Lowlife","","R","U",2,4,1,0,"Ganger/Maelstrom","This Unit can only attack rival Units."],
+["La Llorona","Ghost of the Past","R","U",3,3,1,0,"Ganger/Valentino","{Blocker}\nWhen this Unit uses {Blocker}, increase a Gig by up to 3."],
+["Swordwise Huscle","","R","U",3,3,2,0,"Merc","{Attack} If this Unit has power 5+, draw 1."],
+["Valentino Guerrera","","R","U",3,4,2,0,"Ganger/Valentino","If you have more Street Cred than a Rival, this Unit can attack ready Units with {Blocker}."],
+["6th Street Recruits","","R","U",4,6,1,0,"6th Street/Ganger","When a friendly Unit steals a d6, increase a Gig by up to 6."],
+["Kerry Eurodyne","The Last Rockerboy","R","U",4,5,1,0,"Rocker/Samurai","{Spend} If you control a Gig with 8+ value, draw 2."],
+["Meredith Stout","Stone Cold Corpo","R","U",4,5,1,0,"Corpo/Militech","{Blocker}\nThis Unit has +2 power while fighting a Legend.\nWhen a Rival adjusts or swaps 1 or more friendly Gigs, you may add a card from your trash to your hand."],
+["Chrome Fang","","R","U",5,6,1,0,"Ganger/Netrunner/Tyger Claws","{Play} Until your next turn, rival Units can't steal friendly Gigs with value higher than their power."],
+["El Sombrerón","La Venganza Lenta","R","U",5,4,4,0,"Ganger/Valentino","{Attack} You may pay 2 €$. If you do, this Unit gains power equal to a friendly max Gig this turn."],
+["Royce","Don't Call Me Simon","R","U",5,4,2,0,"Ganger/Maelstrom","{Play} Defeat a rival Unit with power 2 or less. If you have more Street Cred than a Rival, defeat a rival Unit with power 3 or less instead."],
+["Screw","Lovelorn Fool","R","U",5,7,2,0,"Ganger/Maelstrom","{Defeated} Add another Unit from your trash to your hand."],
+["V","Roamer of the Badlands","R","U",5,6,2,0,"Merc/Nomad","When this Unit steals a Gig, increase it by up to 5.\nAt the end of your turn, if you control 2 or more Gigs with 8+ value, draw 1."],
+["Animals Wrecker","","R","U",6,10,3,0,"Animal/Ganger",""],
+["Johnny Silverhand","Never Stop Fighting","R","U",6,8,2,0,"Merc/Rocker/Samurai","The first time this Unit wins a fight each turn, ready it.\nThis Unit wins all fights against CORPO Units."],
+["Minotaur","","R","U",7,9,2,0,"Arasaka/Drone/Militech","{Play} If you have more Street Cred than a Rival, defeat a rival Unit with power 5 or less."],
+["Octant","","R","U",7,8,4,0,"Drone/Militech/Zetatech","Play this Unit for -1 €$ for each friendly Gig with 8+ value, to a minimum of 1 €$."],
+["Yorinobu Arasaka","Steel Dragon","R","U",7,9,3,0,"Arasaka/Corpo","{Play} You may play a Unit with cost 4 or less from your hand or trash for free. It can attack rival Units this turn.\nThe first time an ARASAKA Unit is defeated each turn, draw 1."],
+["Mantis Blades","","R","G",1,2,1,1,"Cyberware",""],
+["Arasaka Emergency Radioport","","R","G",2,2,2,1,"Arasaka/Cyberware","When this Unit or Legend is spent, you may look at a friendly face-down Legend. If that Legend is ARASAKA or has {Go Solo}, you may Call it for free."],
+["Satori","Sword of Saburo","R","G",2,2,1,1,"Arasaka/Weapon","When this Unit wins a fight against a rival Unit, draw 1."],
+["Deadman Transmitter","","R","G",3,1,3,1,"Cyberware/Trauma Team","If this Unit would be defeated, defeat its \"DEADMAN TRANSMITTER\" instead."],
+["All is Lost","","R","P",1,null,2,1,"Zetatech","Trash 3. Add a Unit from among them to your hand."],
+["Detonate","","R","P",1,null,2,1,"Quickhack","{Quick} Defeat a rival Gear with power 2 or less."],
+["Industrial Assembly","","R","P",1,null,1,1,"Arasaka/Braindance","Increase a Gig by up to 4. If you control a Gig with 8+ value, draw 1."],
+["Appetite for Destruction","","R","P",3,null,4,1,"Ganger","The next time a friendly Unit wins a fight by 3+ power this turn, it also steals a Gig."],
+["Bonnie and Clyde","","R","P",3,null,3,1,"Braindance","Defeat a rival Unit with power 4 or less. You may defeat 2 instead if a Rival controls at least 2 Gigs more than you."],
+["Over the Edge","","R","P",3,null,2,1,"Merc","Defeat a Unit with power equal to or less than the value of a friendly d20."],
+["Gunpoint Diplomacy","","R","P",4,null,3,1,"Ganger/Plan","Give a friendly Unit these effects. If you have less Street Cred than a Rival, they instead choose one effect for you.\nThe next time this Unit attacks this turn, it may attack ready Units. // Give this Unit +3 power this turn."],
+["Shattered Memories","","R","P",4,null,2,1,"Braindance","Each player discards their hand and may draw 5.\nIf the total number of discarded cards equals the value of a friendly Gig, draw 2."],
+["Carnage at the Colosseum","","R","P",6,null,3,1,"Braindance/Extreme","Play this Program for -1 €$ for each friendly Gig with 8+ value, to a minimum of 1 €$.\nDefeat a rival Unit with less power than a friendly Unit."],
+["Rogue Amendiares","Preem Solo","Y","L",7,7,2,1,"Merc","{Go Solo}\nWhen a friendly Legend steals a Gig, if its value is even, draw 1. If its value is odd, a Rival discards 1."],
+["Dum Dum","Maelstrom Triggerman","Y","L",null,null,2,1,"Ganger/Maelstrom","{Call} You may defeat a friendly Gear. If you do, draw 2. Otherwise, draw 1.\n{Quick} 1 €$, {Spend} Give a friendly Unit +1 power this turn for each of its equipped Gear."],
+["Kerry Eurodyne","Axe, Attitude, Audience","Y","L",null,null,2,1,"Rocker/Samurai","When you roll in a Gig from your fixer area, you may ignore the result and reroll it once.\nWhen you roll a min or max value on a Gig, draw 1. If it's a d20, draw 3 instead."],
+["Muamar Reyes","El Capitán","Y","L",null,null,2,1,"Fixer","{Call} Choose one effect.\nA friendly Unit can't be defeated in a fight this turn. // Draw 1.\n{Spend} Adjust a Gig by 1."],
+["River Ward","Detective on the Hunt","Y","L",null,null,2,1,"NCPD","{Quick} {Spend} Play a Gear with cost 2 or less from your hand for free.\nWhen a friendly equipped Unit is defeated, search the top 2 cards of your deck and trash 1."],
+["Viktor Vektor","Sit Down and Relax","Y","L",null,null,2,1,"Ripperdoc","{Call} Search the top 5 cards of your deck. Reveal up to 2 Gears with cost 2 or less and add them to your hand. Bottom-deck the rest in a random order."],
+["Secondhand Bombus","","Y","U",2,0,2,0,"Drone/Zetatech","{Blocker}"],
+["Sketchy Ripper","","Y","U",2,0,2,0,"Ganger/Ripperdoc/Scavenger","{Attack} Search the top 3 cards of your deck. Reveal a Gear and add it to your hand. Bottom-deck the rest."],
+["Augmented Negotiators","","Y","U",3,2,1,0,"Arasaka/Corpo","{Blocker}\nWhen this Unit uses {Blocker}, a Rival discards 1."],
+["Dexter DeShawn","One Last Chance","Y","U",3,4,2,0,"Fixer","{Play} {Attack} Adjust a Gig by up to 1.\n{Defeated} If your Street Cred differs from a Rival's by 10+, draw 2."],
+["Maelstrom Goons","","Y","U",3,3,2,0,"Ganger/Maelstrom","When this Unit steals a Gig, if it's equipped, a Rival discards 1."],
+["Viktor Vektor","You Might Feel a Little Pinch","Y","U",3,3,2,0,"Ripperdoc","{Play} Play a CYBERWARE Gear with cost 2 or less from your trash for free. Equip it only to another friendly Unit."],
+["Gilded Matón","","Y","U",4,3,2,0,"Ganger/Valentino","{Play} You may defeat a friendly Gear. If you do, defeat a rival Unit with cost 3 or less."],
+["Hanako Arasaka","In a Gilded Cage","Y","U",4,1,2,0,"Arasaka/Corpo/Netrunner","{Play} Search the top 4 cards of your deck. Reveal any number of cards with cost equal to any friendly Gig values and add them to your hand. Bottom-deck the rest."],
+["Offduty Malfini","","Y","U",4,5,2,0,"Ganger/Voodoo Boys","{Play} Spend this Unit and a rival Unit."],
+["T-Bug","Amateur Philosopher","Y","U",4,4,2,0,"Merc/Netrunner","{Defeated} Look at all friendly face-down Legends. Then, you may Call a Legend for free."],
+["Caliber","Totentanz's Top Dog","Y","U",5,5,2,0,"Ganger/Maelstrom","{Play} Defeat a rival Unit with cost 2 or less.\n{Defeated} A Rival discards 1. If the card's cost equals the value of a friendly Gig, that Rival discards 1 more."],
+["MaxTac Suppression Team","","Y","U",5,7,1,0,"NCPD","Rival Units can't attack the turn they're played."],
+["Rockn' Rockerboy","","Y","U",5,8,1,0,"Rocker",""],
+["Viktor Vektor","Drop Your Illusions","Y","U",5,5,2,0,"Ripperdoc","Play your first CYBERWARE Gear each turn for -3 €$, to a minimum of 1 €$."],
+["Heywood Ripperdoc","","Y","U",6,8,1,0,"Ripperdoc","{Play} You may defeat a Gear. If its cost equals the value of a friendly Gig, draw 1."],
+["Jackie Welles","Ride or Die Choom","Y","U",6,8,2,0,"Merc/Valentino","{Attack} Give this Unit +2 power this turn for each friendly Gig with an even value.\n{Defeated} Draw 1 for each friendly Gig with an odd value."],
+["Trauma Team Operatives","","Y","U",6,7,2,0,"Medtech/Trauma Team","Play this Unit for -1 €$ for each Unit in your trash, to a minimum of 1 €$."],
+["Alt Cunningham","Mother of Daemons","Y","U",7,8,3,0,"Merc/Netrunner","When a friendly equipped Unit or Legend is spent, draw 1.\nWhen a rival Unit would steal a Gig, you may discard 1 with cost equal to that Gig's value. If you do, the Gig isn't stolen."],
+["Adam Smasher","Metal Over Meat","Y","U",9,15,6,0,"Arasaka/Merc","{Play} Defeat all other Units."],
+["Kiroshi Optics","","Y","G",1,1,1,1,"Cyberware","{Attack} Look at a friendly face-down Legend."],
+["Mandibular Upgrade","","Y","G",1,0,2,1,"Cyberware","{Blocker}"],
+["Adrenaline Converter","","Y","G",2,3,4,1,"Cyberware/Medtech","If a Rival controls at least 2 more Gigs than you, this Unit has {Adrenaline}."],
+["Zetatech Faceplate","","Y","G",2,2,2,1,"Cyberware/Zetatech","When this Unit or Legend is spent, adjust a Gig by up to 1. Then, if you control 3 or more Gigs with different values, draw 1."],
+["Gorilla Arms","","Y","G",4,3,3,1,"Cyberware","The first time this Unit steals 1 or more Gigs each turn, steal a rival Gig with a value not shared by a friendly Gig."],
+["The Relic","Experimental Biochip","Y","G",5,3,4,1,"Arasaka/Cyberware","{Defeated} Play another Unit with cost 9 or less from your trash for free. Then, bottom-deck this Unit."],
+["Afterparty at Lizzie's","","Y","P",1,null,1,1,"Braindance/Mox","Adjust a Gig by up to 1. If you control 2 or more Gigs with different values, draw 1."],
+["Safety Override","","Y","P",2,null,3,1,"Quickhack","{Quick} The next time a friendly Unit loses a fight this turn, defeat the opposing rival Unit."],
+["The Heist","","Y","P",2,null,2,1,"Merc","Trash 4. Add a Gear from among them to your hand. If that Gear's cost equals the value of a friendly Gig, you may play it for free instead."],
+["Cyberpsychosis","","Y","P",3,null,2,1,"Quickhack","{Quick} Give an equipped Unit +3 power this turn for each of its equipped Gears. If that Unit steals or fights, defeat it at the end of this turn."],
+["Live with the Aftermath","","Y","P",3,null,3,1,"Plan","Each player defeats one of their Units."],
+["Bootleg Black Sapphire Show","","Y","P",5,null,4,1,"Braindance","Sell the top card of your deck.\nIf you control a Gig with an even value and a Gig with an odd value, draw 2."],
+["Goro Takemura","Hands Unclean","G","L",5,7,2,1,"Arasaka/Corpo","{Go Solo}\n{Blocker}"],
+["Jackie Welles","Mama's Favorite","G","L",6,8,2,1,"Merc","{Go Solo}\nIf a friendly Unit would be defeated, you may pay 1 €$ to defeat this Legend instead."],
+["Goro Takemura","Vengeful Bodyguard","G","L",null,null,2,1,"Arasaka/Corpo","{Quick} 1 €$, {Spend} Give a friendly Unit with cost 4 or less {Blocker} this turn. If you control a value-pair of Gigs, also give it +1 power this turn.\nWhen a friendly Unit uses {Blocker}, you may discard 1. If you do, draw 1."],
+["Hanako Arasaka","Daughter of the Emperor","G","L",null,null,2,1,"Arasaka/Corpo/Netrunner","{Spend} Swap a friendly Gig with a rival Gig.\nAt the start of your turn, draw 1 for each friendly value-pair of Gigs."],
+["Padre","Man of the Cross","G","L",null,null,2,1,"Fixer/Ganger/Valentino","{Call} Choose one effect.\nSpend a rival Unit. // Draw 1.\n{Spend} Set a player's Gig to the same value as another player's Gig."],
+["Panam Palmer","Nomad Cavalry","G","L",null,null,2,1,"Aldecaldo/Merc/Nomad","2 €$, {Spend} Move a Gear from this Legend to an unequipped friendly Unit. If you do, ready that Unit.\nAt the end of your turn, if 5 or more friendly Units and/or Legends are equipped, ready them."],
+["Saburo Arasaka","Stubborn Patriarch","G","L",null,null,2,1,"Arasaka/Corpo","Friendly ARASAKA Units have +1 power while attacking."],
+["Corpo Security","","G","U",2,2,1,0,"Corpo","This Unit can't attack.\n{Blocker}"],
+["Tyger's Whisper","","G","U",2,0,1,0,"Fixer/Tyger Claws","{Play} You may Call a Legend for free."],
+["Emergency Atlus","","G","U",3,4,1,0,"Trauma Team/Vehicle/Zetatech",""],
+["Field Operator","","G","U",3,2,2,0,"Arasaka/Corpo/Techie","{Play} If your Street Cred is an even number, draw 1."],
+["MaxTac Squadron","","G","U",3,4,3,0,"NCPD","At the end of your turn, if this Unit is spent, ready a friendly face-up Legend."],
+["Valentino Street Racer","","G","U",3,3,2,0,"Valentino/Vehicle","{Play} Give another friendly Unit with cost 5 or less {Adrenaline} this turn."],
+["Goro Takemura","Losing His Way","G","U",4,4,3,0,"Arasaka/Corpo","{Attack} If all friendly Legends are face-up, this Unit has +5 power this turn."],
+["Maelstrom Zealots","","G","U",4,0,1,0,"Ganger/Maelstrom","When this Unit loses a fight, defeat the opposing rival Unit."],
+["Pacifica Netrunner","","G","U",4,1,2,0,"Netrunner","{Play} If your Street Cred is an even number, a rival Unit can't ready until your next turn."],
+["Pepe Najarro","Working Doubles","G","U",4,6,2,0,"Valentino","{Attack} If you control a value-pair of Gigs, ready up to 2 MERC Legends in your Legends area."],
+["MaxTac AV","","G","U",5,8,2,0,"NCPD/Vehicle","{Play} You may swap a friendly Gig with a rival Gig."],
+["Riding Nomad","","G","U",5,4,4,0,"Nomad","{Adrenaline}"],
+["Wraith Marauders","","G","U",5,4,2,0,"Ganger/Nomad/Raffen Shiv","When this Unit steals a Gig, ready another friendly Unit with power equal to the Gig's value."],
+["Nadia","Fighting Through Grief","G","U",6,8,2,0,"Medtech/Trauma Team","If a Rival controls more Gigs than you, this Unit can attack their Gig area the turn it's played."],
+["Panam Palmer","Strength Through Family","G","U",6,6,4,0,"Aldecaldo/Merc/Nomad","During your turn, you may Call a Legend for free.\n{Attack} Discard 1. If you do, draw 1 for each friendly face-up Legend."],
+["MaxTac Heavy","","G","U",7,8,3,0,"NCPD","Play this Unit for -1 €$ for each of a Rival's Units, to a minimum of 1 €$."],
+["Sandayu Oda","Hanako's Guardian","G","U",7,8,2,0,"Arasaka/Corpo","{Play} Spend a rival Unit for each friendly value-pair of Gigs.\nThis Unit can attack rival Units the turn it's played."],
+["Saul Bright","Stormrider","G","U",8,14,2,0,"Aldecaldo/Nomad","Other friendly Units have +2 power while attacking.\nAt the end of your turn, ready up to 3 friendly Units."],
+["Riot Shield","","G","G",2,1,2,1,"Weapon","{Blocker}\nRivals must pay +2 €$ to use {Go Solo}."],
+["Sandevistan","","G","G",3,2,3,1,"Cyberware","At the end of your turn, ready this Unit or Legend."],
+["Overwatch","Panam's Gift","G","G",4,4,4,1,"Weapon","{Quick} 1 €$, {Spend} Discard 1. Defeat a spent rival Unit with cost equal to or less than the discarded card's cost."],
+["Zetatech Berserk","","G","G",6,3,2,1,"Cyberware/Zetatech","Play this Gear for -1 €$ for each friendly face-up Legend, to a minimum of 1 €$."],
+["Peace Offering","","G","P",1,null,1,1,"Braindance","You may set a Gig's value to the value of another Gig. Then, if you control a value-pair, draw 1."],
+["Synapse Burnout","","G","P",1,null,1,1,"Quickhack","{Quick} A friendly Unit has +1 power for each friendly face-up Legend while fighting rival Units this turn."],
+["Corporate Surveillance","","G","P",2,null,1,1,"Corpo","Spend a rival Unit with cost 4 or less."],
+["Fool on the Hill","","G","P",2,null,3,1,"Merc","Reveal the top 2 cards of your deck. A Rival chooses whether you add them to your hand or trash them. If you trash them, draw 2."],
+["Take Control","","G","P",2,null,2,1,"Quickhack","{Quick} A rival Unit steals 1 fewer Gig this turn. If that Unit is an AI, DRONE, or VEHICLE, draw 1."],
+["Memory Relapse","","G","P",4,null,2,1,"Braindance","Spend a rival Unit. It can't ready until your next turn. If your Street Cred is an even number, draw 1."],
+["We Gotta Live Together","","G","P",5,null,2,1,"Aldecaldo/Nomad","If a Rival controls at least 2 more Gigs than you, play this Program for 3 €$.\nPlay up to 2 Units with cost 3 or less from your trash for free."],
+["Wild in the Streets","","G","P",5,null,4,1,"Ganger","Defeat a spent Unit."],
+["(Don't Fear) The Reaper","","G","P",7,null,3,1,"Samurai","Spend all rival Units. Then, defeat a spent Unit."],
+["Sasha Yakovleva","Won't Let You Down","B","L",5,0,2,1,"Maine's Crew/Merc/Netrunner","{Go Solo}\n{Attack} Reveal the top card of your deck and add it to your hand. This Unit gains power equal to that card's cost this turn.\n{Defeated} A Rival discards 1."],
+["V","Corporate Exile","B","L",5,8,2,1,"Corpo/Merc","{Go Solo}"],
+["Alt Cunningham","Soulkiller Architect","B","L",null,null,2,1,"Merc/Netrunner","{Spend} Your next Program this turn plays for -1 €$ for each friendly min Gig, to a minimum of 1 €$.\n1 €$, {Spend} Play a Program from your trash. Bottom-deck it after you play it."],
+["Evelyn Parker","Beautiful Enigma","B","L",null,null,2,1,"Doll","When a friendly CORPO or GANGER Unit steals 1 or more Gigs, ready 1 Eddie.\n1 €$, {Spend} A rival Unit must attack next turn if it can."],
+["Jackie Welles","Pour One Out For Me","B","L",null,null,2,1,"Merc","The first time you play a Blue Unit or Blue Gear each turn, you may decrease a friendly Gig by up to 2. If it becomes a min Gig, draw 1."],
+["Judy Álvarez","Braindance Maestro","B","L",null,null,2,1,"Ganger/Mox/Techie","When you play a BRAINDANCE Program, give a friendly Unit +1 power this turn.\n{Spend} Trash the top card of your deck. If it's a Program, you may add it to your hand."],
+["Wakako Okada","Peace and Harmony","B","L",null,null,2,1,"Fixer/Tyger Claws","{Call} Choose one effect.\nGive a rival Unit -2 power this turn. // Draw 1.\n{Spend}: Decrease a Gig by up to 2."],
+["Evelyn Parker","Scheming Siren","B","U",2,0,3,0,"Doll","{Attack} Draw 1. Then, if you have more Street Cred than a Rival, discard 1."],
+["Jacked-In Voodoo Boy","","B","U",2,2,2,0,"Netrunner/Voodoo Boys","This Unit can't attack unless you played a Program this turn."],
+["Delamain","Rideshare AI","B","U",3,0,3,0,"AI","{Play} Draw 2."],
+["Misty Olszewski","Mender of Broken Spirits","B","U",3,0,2,0,"Mystic","This Unit can't attack.\nAt the end of your turn, choose a card type. Then, reveal the top card of your deck. If it's the chosen type, add it to your hand and ready 1 Eddie. Otherwise, trash it."],
+["Mox Inciters","","B","U",3,2,2,0,"Ganger/Mox","{Play} A rival Unit must attack next turn if it can.\n{Blocker}"],
+["Delamain Cab","","B","U",4,4,2,0,"Vehicle","At the end of your turn, if this Unit stole a Gig this turn, ready 1 Eddie."],
+["Hacked Corpo","","B","U",4,3,1,0,"AI/Corpo","{Play} Trash 3. Add a Program from among them to your hand."],
+["Psycho Squad","","B","U",4,6,1,0,"NCPD",""],
+["Rita Wheeler","No Stupid Questions","B","U",4,4,2,0,"Ganger/Mox","{Blocker}\nThe first time this Unit is spent each turn, draw 1, then discard 1."],
+["Westbrook Netrunner","","B","U",4,5,2,0,"Netrunner","{Play} Until your next turn, rival Legends can't steal friendly Gigs with value less than their power."],
+["Lizzy Wizzy","Delicate Weapon","B","U",5,2,2,0,"Rocker","{Play} You may play a Program with cost 3 or less from your hand or trash for free. Bottom-deck it after you play it.\n{Blocker}"],
+["Maman Brigitte","Spirit of Death","B","U",5,3,4,0,"Mystic/Netrunner/Voodoo Boys","{Play} You may discard 2 Programs. If you do, bottom-deck a rival unequipped Unit."],
+["Modded Muramasa","","B","U",5,4,2,0,"Vehicle","At the end of your turn, if you have less Street Cred than a Rival, ready this Unit."],
+["MT0D12 Flathead","","B","U",5,7,3,1,"Drone/Militech","If you have less Street Cred than a Rival, this Unit can't be blocked."],
+["Rogue Amendiares","Queen of the Afterlife","B","U",5,4,2,0,"Fixer/Merc","The first time another friendly Unit steals a Gig with value less than its power each turn, ready 2 Eddies.\n{Quick} 2 €$, {Spend} A rival Unit loses power equal to this Unit's power this turn."],
+["Judy Álvarez","Nothing to Doubt","B","U",6,6,5,0,"Ganger/Mox/Techie","1 €$, {Spend} Reveal the top card of your deck. You may play it for free. Otherwise, add it to your hand."],
+["Modded Kusanagi","","B","U",6,8,2,0,"Tyger Claws/Vehicle","{Adrenaline}\nAt the end of your turn, return this Unit to its owner's hand."],
+["Placide","Voodoo Sentinel","B","U",8,10,2,0,"Ganger/Netrunner/Voodoo Boys","{Play} {Attack} You may discard 1 Program. If you do, bottom-deck a rival Unit."],
+["Tetratronic Rippler","","B","G",1,1,2,1,"Cyberware","When this Unit or Legend is spent, search the top card of your deck. You may trash it."],
+["Dying Night","V's Pistol","B","G",2,2,2,1,"Merc/Weapon","{Attack} Decrease a Gig by up to 2. At the end of your turn, if this Unit is named \"V\", ready 2 Eddies."],
+["NetWatch Netdriver","","B","G",3,2,2,1,"Cyberware/Netrunner/Netwatch","When this Unit or Legend is spent, draw 1."],
+["Floor It","","B","P",1,null,1,1,"Merc/Quickhack","{Quick} Give a rival Unit -1 power this turn. Draw 1."],
+["Trust No One","","B","P",1,null,1,1,"Braindance","Decrease a Gig by up to 3. Then, if you control a min Gig, draw 1."],
+["Reboot Optics","","B","P",2,null,2,1,"Quickhack","{Quick} The next time a rival Unit fights this turn, it doesn't defeat the opposing friendly Unit."],
+["Three Mouths, One Desire","","B","P",2,null,3,1,"Braindance/Doll","Search the top 3 cards of your deck. Add 1 to your hand. You may add 1 more for each friendly min Gig. Bottom-deck the rest."],
+["Chrome Reverie","","B","P",3,null,1,1,"Braindance","A rival Unit can't attack until your next turn. If you control a min Gig, you may Call a Legend for free."],
+["Nocturne OP55 N1","","B","P",3,null,2,1,"Arasaka/Plan","If your fixer area is empty, play this Program for 1 €$. Choose one effect.\nDraw 2. // A Unit can't attack until your next turn. // A friendly Legend may use {Go Solo} for -2 €$ this turn, to a minimum of 1 €$."],
+["Pyramid Song","","B","P",3,null,3,1,"Braindance","Choose one effect. If a friendly d4 is a min Gig, choose both instead.\nGive a rival Unit -4 power this turn. // Bottom-deck a rival Unit with power 0."],
+["Unlikely Bond","","B","P",4,null,2,1,"Maelstrom/Mox","Bottom-deck a ready friendly Unit. If you do, bottom-deck a spent rival Unit."],
+["Les Élémens","","B","P",5,null,4,1,"Corpo","Bottom-deck a Rival's lowest-power Unit."],
+["Towerfall","","B","P",6,null,4,1,"Braindance","Choose one effect. If you have less Street Cred than a Rival, choose both instead.\nGive all rival Units -5 power this turn. // Bottom-deck all rival Units with power 0."],
+];
+const ES=[
+"{Call} Manda 3 cartas del mazo al trash. Después, añade 1 Program BRAINDANCE de tu trash a tu mano.\n{Go Solo}",
+"{Go Solo}\nDurante tu turno, esta Legend tiene +2 de poder por cada Gear que tenga equipada.",
+"{Go Solo}\n{Play} Derrota una Unit rival.",
+"{Call} Elige un efecto.\nDa +2 de poder a una Unit aliada este turno. // Roba 1.\n{Spend}: Sube un Gig hasta 2.",
+"2 €$, {Spend} Una Unit aliada puede atacar Units rivales agotadas el turno en que se juega. Si es una Unit ROCKER, además dale +2 de poder este turno. Este efecto cuesta -1 €$ por cada Gig aliado con valor 8+.",
+"",
+"La primera vez cada turno que una Unit ARASAKA aliada ataque, roba 1. Después, si tienes menos de 20 de Street Cred, descarta 1.",
+"{Play} Da +2 de poder a una Unit aliada este turno.",
+"Esta Unit solo puede atacar Units rivales.",
+"{Blocker}\nCuando esta Unit use {Blocker}, sube un Gig hasta 3.",
+"{Attack} Si esta Unit tiene 5+ de poder, roba 1.",
+"Si tienes más Street Cred que un rival, esta Unit puede atacar Units preparadas con {Blocker}.",
+"Cuando una Unit aliada robe un d6, sube un Gig hasta 6.",
+"{Spend} Si controlas un Gig con valor 8+, roba 2.",
+"{Blocker}\nEsta Unit tiene +2 de poder mientras pelea contra una Legend.\nCuando un rival ajuste o intercambie 1 o más Gigs aliados, puedes añadir una carta de tu trash a tu mano.",
+"{Play} Hasta tu próximo turno, las Units rivales no pueden robar Gigs aliados con valor mayor que su poder.",
+"{Attack} Puedes pagar 2 €$. Si lo haces, esta Unit gana poder igual a un Gig aliado al máximo este turno.",
+"{Play} Derrota una Unit rival con poder 2 o menos. Si tienes más Street Cred que un rival, derrota en su lugar una Unit rival con poder 3 o menos.",
+"{Defeated} Añade otra Unit de tu trash a tu mano.",
+"Cuando esta Unit robe un Gig, súbelo hasta 5.\nAl final de tu turno, si controlas 2 o más Gigs con valor 8+, roba 1.",
+"",
+"La primera vez cada turno que esta Unit gane una pelea, prepárala.\nEsta Unit gana todas las peleas contra Units CORPO.",
+"{Play} Si tienes más Street Cred que un rival, derrota una Unit rival con poder 5 o menos.",
+"Juega esta Unit por -1 €$ por cada Gig aliado con valor 8+, con un mínimo de 1 €$.",
+"{Play} Puedes jugar gratis una Unit de coste 4 o menos de tu mano o trash. Puede atacar Units rivales este turno.\nLa primera vez cada turno que una Unit ARASAKA sea derrotada, roba 1.",
+"",
+"Cuando esta Unit o Legend se agote, puedes mirar una Legend aliada boca abajo. Si es ARASAKA o tiene {Go Solo}, puedes hacerle Call gratis.",
+"Cuando esta Unit gane una pelea contra una Unit rival, roba 1.",
+"Si esta Unit fuera a ser derrotada, derrota en su lugar su \"DEADMAN TRANSMITTER\".",
+"Manda 3 cartas del mazo al trash. Añade una Unit de entre ellas a tu mano.",
+"{Quick} Derrota una Gear rival con poder 2 o menos.",
+"Sube un Gig hasta 4. Si controlas un Gig con valor 8+, roba 1.",
+"La próxima vez este turno que una Unit aliada gane una pelea por 3+ de poder, además roba un Gig.",
+"Derrota una Unit rival con poder 4 o menos. Puedes derrotar 2 en su lugar si un rival controla al menos 2 Gigs más que tú.",
+"Derrota una Unit con poder igual o menor que el valor de un d20 aliado.",
+"Da estos efectos a una Unit aliada. Si tienes menos Street Cred que un rival, este elige uno de los efectos por ti.\nLa próxima vez que esta Unit ataque este turno, puede atacar Units preparadas. // Da +3 de poder a esta Unit este turno.",
+"Cada jugador descarta su mano y puede robar 5.\nSi el total de cartas descartadas es igual al valor de un Gig aliado, roba 2.",
+"Juega este Program por -1 €$ por cada Gig aliado con valor 8+, con un mínimo de 1 €$.\nDerrota una Unit rival con menos poder que una Unit aliada.",
+"{Go Solo}\nCuando una Legend aliada robe un Gig, si su valor es par, roba 1. Si es impar, un rival descarta 1.",
+"{Call} Puedes derrotar una Gear aliada. Si lo haces, roba 2. Si no, roba 1.\n{Quick} 1 €$, {Spend} Da a una Unit aliada +1 de poder este turno por cada Gear que tenga equipada.",
+"Cuando metas un Gig desde tu zona Fixer, puedes ignorar el resultado y volver a tirarlo una vez.\nCuando saques el valor mínimo o máximo en un Gig, roba 1. Si es un d20, roba 3 en su lugar.",
+"{Call} Elige un efecto.\nUna Unit aliada no puede ser derrotada en una pelea este turno. // Roba 1.\n{Spend} Ajusta un Gig en 1.",
+"{Quick} {Spend} Juega gratis desde tu mano una Gear de coste 2 o menos.\nCuando una Unit aliada equipada sea derrotada, mira las 2 cartas superiores de tu mazo y manda 1 al trash.",
+"{Call} Mira las 5 cartas superiores de tu mazo. Revela hasta 2 Gears de coste 2 o menos y añádelas a tu mano. Pon el resto al fondo en orden aleatorio.",
+"{Blocker}",
+"{Attack} Mira las 3 cartas superiores de tu mazo. Revela una Gear y añádela a tu mano. Pon el resto al fondo.",
+"{Blocker}\nCuando esta Unit use {Blocker}, un rival descarta 1.",
+"{Play} {Attack} Ajusta un Gig hasta 1.\n{Defeated} Si tu Street Cred se diferencia en 10+ de la de un rival, roba 2.",
+"Cuando esta Unit robe un Gig, si está equipada, un rival descarta 1.",
+"{Play} Juega gratis desde tu trash una Gear CYBERWARE de coste 2 o menos. Equípala solo a otra Unit aliada.",
+"{Play} Puedes derrotar una Gear aliada. Si lo haces, derrota una Unit rival de coste 3 o menos.",
+"{Play} Mira las 4 cartas superiores de tu mazo. Revela cualquier número de cartas con coste igual al valor de algún Gig aliado y añádelas a tu mano. Pon el resto al fondo.",
+"{Play} Agota esta Unit y una Unit rival.",
+"{Defeated} Mira todas tus Legends boca abajo. Después, puedes hacer Call a una Legend gratis.",
+"{Play} Derrota una Unit rival de coste 2 o menos.\n{Defeated} Un rival descarta 1. Si el coste de la carta es igual al valor de un Gig aliado, ese rival descarta 1 más.",
+"Las Units rivales no pueden atacar el turno en que se juegan.",
+"",
+"Juega tu primera Gear CYBERWARE de cada turno por -3 €$, con un mínimo de 1 €$.",
+"{Play} Puedes derrotar una Gear. Si su coste es igual al valor de un Gig aliado, roba 1.",
+"{Attack} Da a esta Unit +2 de poder este turno por cada Gig aliado con valor par.\n{Defeated} Roba 1 por cada Gig aliado con valor impar.",
+"Juega esta Unit por -1 €$ por cada Unit en tu trash, con un mínimo de 1 €$.",
+"Cuando una Unit o Legend aliada equipada se agote, roba 1.\nCuando una Unit rival fuera a robar un Gig, puedes descartar 1 carta de coste igual al valor de ese Gig. Si lo haces, el Gig no se roba.",
+"{Play} Derrota a todas las demás Units.",
+"{Attack} Mira una Legend aliada boca abajo.",
+"{Blocker}",
+"Si un rival controla al menos 2 Gigs más que tú, esta Unit tiene {Adrenaline}.",
+"Cuando esta Unit o Legend se agote, ajusta un Gig hasta 1. Después, si controlas 3 o más Gigs con valores distintos, roba 1.",
+"La primera vez cada turno que esta Unit robe 1 o más Gigs, roba un Gig rival con un valor que no tenga ningún Gig aliado.",
+"{Defeated} Juega gratis desde tu trash otra Unit de coste 9 o menos. Después, pon esta Unit al fondo del mazo.",
+"Ajusta un Gig hasta 1. Si controlas 2 o más Gigs con valores distintos, roba 1.",
+"{Quick} La próxima vez este turno que una Unit aliada pierda una pelea, derrota a la Unit rival contraria.",
+"Manda 4 cartas del mazo al trash. Añade una Gear de entre ellas a tu mano. Si su coste es igual al valor de un Gig aliado, puedes jugarla gratis en su lugar.",
+"{Quick} Da a una Unit equipada +3 de poder este turno por cada Gear que tenga. Si esa Unit roba o pelea, derrótala al final de este turno.",
+"Cada jugador derrota una de sus Units.",
+"Vende la carta superior de tu mazo.\nSi controlas un Gig con valor par y otro con valor impar, roba 2.",
+"{Go Solo}\n{Blocker}",
+"{Go Solo}\nSi una Unit aliada fuera a ser derrotada, puedes pagar 1 €$ para derrotar a esta Legend en su lugar.",
+"{Quick} 1 €$, {Spend} Da {Blocker} este turno a una Unit aliada de coste 4 o menos. Si controlas una pareja de Gigs del mismo valor, dale además +1 de poder este turno.\nCuando una Unit aliada use {Blocker}, puedes descartar 1. Si lo haces, roba 1.",
+"{Spend} Intercambia un Gig aliado por un Gig rival.\nAl inicio de tu turno, roba 1 por cada pareja de Gigs aliados del mismo valor.",
+"{Call} Elige un efecto.\nAgota una Unit rival. // Roba 1.\n{Spend} Pon un Gig de un jugador al mismo valor que un Gig de otro jugador.",
+"2 €$, {Spend} Mueve una Gear de esta Legend a una Unit aliada sin equipar. Si lo haces, prepara esa Unit.\nAl final de tu turno, si 5 o más Units y/o Legends aliadas están equipadas, prepáralas.",
+"Las Units ARASAKA aliadas tienen +1 de poder mientras atacan.",
+"Esta Unit no puede atacar.\n{Blocker}",
+"{Play} Puedes hacer Call a una Legend gratis.",
+"",
+"{Play} Si tu Street Cred es un número par, roba 1.",
+"Al final de tu turno, si esta Unit está agotada, prepara una Legend aliada boca arriba.",
+"{Play} Da {Adrenaline} este turno a otra Unit aliada de coste 5 o menos.",
+"{Attack} Si todas tus Legends están boca arriba, esta Unit tiene +5 de poder este turno.",
+"Cuando esta Unit pierda una pelea, derrota a la Unit rival contraria.",
+"{Play} Si tu Street Cred es un número par, una Unit rival no puede prepararse hasta tu próximo turno.",
+"{Attack} Si controlas una pareja de Gigs del mismo valor, prepara hasta 2 Legends MERC de tu zona de Legends.",
+"{Play} Puedes intercambiar un Gig aliado por un Gig rival.",
+"{Adrenaline}",
+"Cuando esta Unit robe un Gig, prepara otra Unit aliada con poder igual al valor del Gig.",
+"Si un rival controla más Gigs que tú, esta Unit puede atacar su zona de Gigs el turno en que se juega.",
+"Durante tu turno, puedes hacer Call a una Legend gratis.\n{Attack} Descarta 1. Si lo haces, roba 1 por cada Legend aliada boca arriba.",
+"Juega esta Unit por -1 €$ por cada Unit de un rival, con un mínimo de 1 €$.",
+"{Play} Agota una Unit rival por cada pareja de Gigs aliados del mismo valor.\nEsta Unit puede atacar Units rivales el turno en que se juega.",
+"Las demás Units aliadas tienen +2 de poder mientras atacan.\nAl final de tu turno, prepara hasta 3 Units aliadas.",
+"{Blocker}\nLos rivales deben pagar +2 €$ para usar {Go Solo}.",
+"Al final de tu turno, prepara esta Unit o Legend.",
+"{Quick} 1 €$, {Spend} Descarta 1. Derrota una Unit rival agotada con coste igual o menor que el de la carta descartada.",
+"Juega esta Gear por -1 €$ por cada Legend aliada boca arriba, con un mínimo de 1 €$.",
+"Puedes poner el valor de un Gig igual al de otro Gig. Después, si controlas una pareja del mismo valor, roba 1.",
+"{Quick} Una Unit aliada tiene +1 de poder por cada Legend aliada boca arriba mientras pelea contra Units rivales este turno.",
+"Agota una Unit rival de coste 4 o menos.",
+"Revela las 2 cartas superiores de tu mazo. Un rival elige si las añades a tu mano o las mandas al trash. Si las mandas al trash, roba 2.",
+"{Quick} Una Unit rival roba 1 Gig menos este turno. Si esa Unit es AI, DRONE o VEHICLE, roba 1.",
+"Agota una Unit rival. No puede prepararse hasta tu próximo turno. Si tu Street Cred es un número par, roba 1.",
+"Si un rival controla al menos 2 Gigs más que tú, juega este Program por 3 €$.\nJuega gratis desde tu trash hasta 2 Units de coste 3 o menos.",
+"Derrota una Unit agotada.",
+"Agota todas las Units rivales. Después, derrota una Unit agotada.",
+"{Go Solo}\n{Attack} Revela la carta superior de tu mazo y añádela a tu mano. Esta Unit gana poder igual al coste de esa carta este turno.\n{Defeated} Un rival descarta 1.",
+"{Go Solo}",
+"{Spend} Tu próximo Program este turno cuesta -1 €$ por cada Gig aliado al mínimo, con un mínimo de 1 €$.\n1 €$, {Spend} Juega un Program desde tu trash. Ponlo al fondo del mazo después de jugarlo.",
+"Cuando una Unit CORPO o GANGER aliada robe 1 o más Gigs, prepara 1 Eddie.\n1 €$, {Spend} Una Unit rival debe atacar el próximo turno si puede.",
+"La primera vez cada turno que juegues una Unit o Gear azul, puedes bajar un Gig aliado hasta 2. Si queda al mínimo, roba 1.",
+"Cuando juegues un Program BRAINDANCE, da +1 de poder a una Unit aliada este turno.\n{Spend} Manda al trash la carta superior de tu mazo. Si es un Program, puedes añadirlo a tu mano.",
+"{Call} Elige un efecto.\nDa -2 de poder a una Unit rival este turno. // Roba 1.\n{Spend}: Baja un Gig hasta 2.",
+"{Attack} Roba 1. Después, si tienes más Street Cred que un rival, descarta 1.",
+"Esta Unit no puede atacar salvo que hayas jugado un Program este turno.",
+"{Play} Roba 2.",
+"Esta Unit no puede atacar.\nAl final de tu turno, elige un tipo de carta. Revela la carta superior de tu mazo. Si es del tipo elegido, añádela a tu mano y prepara 1 Eddie. Si no, mándala al trash.",
+"{Play} Una Unit rival debe atacar el próximo turno si puede.\n{Blocker}",
+"Al final de tu turno, si esta Unit robó un Gig este turno, prepara 1 Eddie.",
+"{Play} Manda 3 cartas del mazo al trash. Añade un Program de entre ellas a tu mano.",
+"",
+"{Blocker}\nLa primera vez cada turno que esta Unit se agote, roba 1 y después descarta 1.",
+"{Play} Hasta tu próximo turno, las Legends rivales no pueden robar Gigs aliados con valor menor que su poder.",
+"{Play} Puedes jugar gratis un Program de coste 3 o menos de tu mano o trash. Ponlo al fondo del mazo después de jugarlo.\n{Blocker}",
+"{Play} Puedes descartar 2 Programs. Si lo haces, pon al fondo del mazo una Unit rival sin equipar.",
+"Al final de tu turno, si tienes menos Street Cred que un rival, prepara esta Unit.",
+"Si tienes menos Street Cred que un rival, esta Unit no puede ser bloqueada.",
+"La primera vez cada turno que otra Unit aliada robe un Gig con valor menor que su poder, prepara 2 Eddies.\n{Quick} 2 €$, {Spend} Una Unit rival pierde poder igual al poder de esta Unit este turno.",
+"1 €$, {Spend} Revela la carta superior de tu mazo. Puedes jugarla gratis. Si no, añádela a tu mano.",
+"{Adrenaline}\nAl final de tu turno, devuelve esta Unit a la mano de su dueño.",
+"{Play} {Attack} Puedes descartar 1 Program. Si lo haces, pon al fondo del mazo una Unit rival.",
+"Cuando esta Unit o Legend se agote, mira la carta superior de tu mazo. Puedes mandarla al trash.",
+"{Attack} Baja un Gig hasta 2. Al final de tu turno, si esta Unit se llama \"V\", prepara 2 Eddies.",
+"Cuando esta Unit o Legend se agote, roba 1.",
+"{Quick} Da -1 de poder a una Unit rival este turno. Roba 1.",
+"Baja un Gig hasta 3. Después, si controlas un Gig al mínimo, roba 1.",
+"{Quick} La próxima vez este turno que una Unit rival pelee, no derrota a la Unit aliada contraria.",
+"Mira las 3 cartas superiores de tu mazo. Añade 1 a tu mano. Puedes añadir 1 más por cada Gig aliado al mínimo. Pon el resto al fondo.",
+"Una Unit rival no puede atacar hasta tu próximo turno. Si controlas un Gig al mínimo, puedes hacer Call a una Legend gratis.",
+"Si tu zona Fixer está vacía, juega este Program por 1 €$. Elige un efecto.\nRoba 2. // Una Unit no puede atacar hasta tu próximo turno. // Una Legend aliada puede usar {Go Solo} por -2 €$ este turno, con un mínimo de 1 €$.",
+"Elige un efecto. Si un d4 aliado está al mínimo, elige ambos.\nDa -4 de poder a una Unit rival este turno. // Pon al fondo del mazo una Unit rival con poder 0.",
+"Pon al fondo del mazo una Unit aliada preparada. Si lo haces, pon al fondo una Unit rival agotada.",
+"Pon al fondo del mazo la Unit de menor poder de un rival.",
+"Elige un efecto. Si tienes menos Street Cred que un rival, elige ambos.\nDa -5 de poder a todas las Units rivales este turno. // Pon al fondo del mazo todas las Units rivales con poder 0.",
+];
+
+const COL={R:"red",Y:"yellow",G:"green",B:"blue"},TYP={L:"Legend",U:"Unit",G:"Gear",P:"Program"};
+const OFFICIAL=RAW.map((r,i)=>{
+ const [name,sub,c,t,cost,power,ram,sell,tags,text]=r;
+ const kw=[];if(/^\{Blocker\}|\n\{Blocker\}/.test(text)&&t!=="G")kw.push("Blocker");if(/^\{Blocker\}/.test(text)&&t==="G")kw.push("GrantBlocker");
+ if(/\{Adrenaline\}$|^\{Adrenaline\}/m.test(text)&&!/Give/.test(text))kw.push("Adrenaline");if(/\{Go Solo\}/.test(text)&&t==="L")kw.push("GoSolo");if(/^\{Quick\}/m.test(text))kw.push("Quick");
+ return {id:"CP"+String(i+1).padStart(3,"0"),name:sub?`${name}: ${sub}`:name,base:name,type:TYP[t],color:COL[c],cost:cost??null,power:power,ram:ram||0,sell:!!sell,tags:tags?tags.split("/"):[],keywords:kw,text,textES:ES[i],official:true};
+});
+
+/* ---------- automatic effect parser: rules text -> actions ---------- */
+function parseSentence(s){
+ s=s.trim().replace(/^[:\s]+/,"");let cond=null,m;
+ if(/instead/i.test(s))return null;
+ const cm=s.match(/^If (.+?), (.+)$/i);
+ if(cm){const c=cm[1].toLowerCase();
+  if(/more street cred than a rival/.test(c))cond="moreCred";else if(/less street cred than a rival/.test(c))cond="lessCred";
+  else if(/street cred is an even/.test(c))cond="evenCred";else if(/control a gig with 8\+/.test(c))cond="gig8";
+  else if(/this unit has power 5\+/.test(c))cond="pow5";else if(/rival controls at least 2 (more gigs|gigs more)/.test(c))cond="behind2";
+  else if(/control a min gig/.test(c))cond="minGig";else if(/control a value-pair/.test(c))cond="pair";
+  else if(/all friendly legends are face-up/.test(c))cond="allUp";else if(/control 2 or more gigs with different/.test(c))cond="diff2";
+  else return null; s=cm[2]}
+ const A=(d,n)=>({do:d,n,cond});
+ if(m=s.match(/^(?:then, )?draw (\d+)/i))return A("draw",+m[1]);
+ if(/^Defeat all other Units/i.test(s))return A("wipe");
+ if(m=s.match(/^Defeat a rival Unit with power (\d+) or less/i))return A("defeat",+m[1]);
+ if(m=s.match(/^Defeat a rival Unit with cost (\d+) or less/i))return A("defeatCost",+m[1]);
+ if(/^Defeat a rival Unit\.?$/i.test(s))return A("defeat",99);
+ if(/^Defeat a spent (rival )?Unit/i.test(s))return A("defeatSpent");
+ if(/^Defeat a rival Unit with less power than a friendly Unit/i.test(s))return A("defeatLess");
+ if(m=s.match(/^Give a friendly Unit \+(\d+) power/i))return A("buffOne",+m[1]);
+ if(m=s.match(/^(?:Give this Unit|this Unit has) \+(\d+) power/i))return A("buff",+m[1]);
+ if(m=s.match(/^Give a rival Unit -(\d+) power/i))return A("weaken",+m[1]);
+ if(m=s.match(/^Give all rival Units -(\d+) power/i))return A("weakenAll",+m[1]);
+ if(m=s.match(/^(?:Increase|Adjust) a Gig by (?:up to )?(\d+)/i))return A("bumpGig",+m[1]);
+ if(m=s.match(/^Decrease a Gig by up to (\d+)/i))return A("dropGig",+m[1]);
+ if(m=s.match(/^Spend a rival Unit with cost (\d+) or less/i))return A("spendRival",+m[1]);
+ if(/^Spend a rival Unit\.?( It can't ready.*)?$/i.test(s))return A("spendRival",99);
+ if(/^Spend this Unit and a rival Unit/i.test(s))return A("spendBoth");
+ if(/^Spend all rival Units/i.test(s))return A("spendAll");
+ if(/^Then, defeat a spent Unit/i.test(s))return A("defeatSpent");
+ if(m=s.match(/^A Rival discards (\d+)/i))return A("trashHand",+m[1]);
+ if(m=s.match(/^Trash (\d+)\.?$/i))return A("mill",+m[1]);
+ if(m=s.match(/^Add an? (Unit|Gear|Program) from among them to your hand/i))return A("fetchMilled",m[1]);
+ if(/^Then, add 1 BRAINDANCE Program from your trash/i.test(s))return A("recur","Program");
+ if(/^Add another Unit from your trash to your hand/i.test(s))return A("recur","Unit");
+ if(/swap a friendly Gig with a rival Gig/i.test(s))return A("swap");
+ if(/Call a Legend for free/i.test(s))return A("freeCall");
+ if(/^Bottom-deck a Rival's lowest-power Unit/i.test(s))return A("bottomLow");
+ if(/^Bottom-deck all rival Units with power 0/i.test(s))return A("bottomZeroAll");
+ if(/^Bottom-deck a rival Unit with power 0/i.test(s))return A("bottomZero");
+ if(/^Each player defeats one of their Units/i.test(s))return A("eachDefeat");
+ if(/^Sell the top card of your deck/i.test(s))return A("sellTop");
+ if(/^Spend a rival Unit for each friendly value-pair/i.test(s))return A("spendPairs");
+ return null;
+}
+function parseBlock(txt){ // returns {acts, ok}
+ const parts=txt.split(/(?<=\.)\s+(?=[A-Z])/).map(x=>x.trim()).filter(Boolean);
+ const acts=[];let ok=true;parts.forEach(p=>{const a=parseSentence(p);if(a)acts.push(a);else ok=false});return{acts,ok};
+}
+function parseFx(c){
+ const fx=[],acts=[];let manual=[];const lines=(c.text||"").split("\n").map(l=>l.trim()).filter(Boolean);
+ const STATIC=/^\{(Blocker|Go Solo|Adrenaline)\}$|^This Unit can't attack\.$|^This Unit can only attack rival Units|^"|^\[Fla/;
+ for(let i=0;i<lines.length;i++){let l=lines[i];
+  if(STATIC.test(l))continue;
+  let ons=[];const quick=/^\{Quick\}\s*/.test(l);l=l.replace(/^\{Quick\}\s*/,"");
+  while(true){const m=l.match(/^\{(Play|Call|Attack|Defeated)\}\s*/);if(!m)break;ons.push(m[1].toLowerCase());l=l.slice(m[0].length)}
+  // activated: "[N €$,] {Spend} ..."
+  const sp=l.match(/^(?:(\d+) €\$,\s*)?\{Spend\}:?\s*(.*)$/);
+  if(sp){const r=parseBlock(sp[2]);acts.push({cost:+(sp[1]||0),acts:r.acts,ok:r.ok&&r.acts.length>0,text:l,quick});if(!r.ok||!r.acts.length)manual.push(l);continue}
+  if(!ons.length){if(c.type==="Program")ons=["play"];else{manual.push(l);continue}}
+  if(/^Choose one effect/i.test(l)&&lines[i+1]){const opts=lines[++i].split(" // ").map(o=>parseBlock(o));
+   ons.forEach(on=>fx.push({on,choose:opts.map((o,k)=>({label:lines[i].split(" // ")[k],acts:o.acts}))}));
+   if(opts.some(o=>!o.ok))manual.push(lines[i]);continue}
+  const r=parseBlock(l);ons.forEach(on=>r.acts.forEach(a=>fx.push({...a,on})));if(!r.ok)manual.push(l);
+ }
+ if(c.type==="Gear"&&/^\{Blocker\}/.test(c.text||""))manual=manual.filter(x=>x!=="{Blocker}");
+ return{fx,acts,manual};
+}
+function prep(c){if(c.official||!c.fx){const p=parseFx(c);c.fx=p.fx;c.acts=p.acts;c.manual=p.manual}else{c.acts=c.acts||[];c.manual=c.manual||[]}return c}
+let CARDS=OFFICIAL.concat(LS.get("cp_extra",[])).map(prep);
+const byId=id=>CARDS.find(c=>c.id===id);
+function rep(arr,n){let o=[];arr.forEach(i=>{for(let k=0;k<n;k++)o.push(i)});return o}
+function autoDeck(name,legNames){
+ const L=legNames.map(n=>CARDS.find(c=>c.type==="Legend"&&c.name.startsWith(n))).filter(Boolean);const ram={};L.forEach(l=>ram[l.color]=(ram[l.color]||0)+l.ram);
+ const pool=CARDS.filter(c=>c.type!=="Legend"&&c.ram<=(ram[c.color]||0)).sort((a,b)=>(a.manual.length-b.manual.length)||(a.cost-b.cost));
+ const cards=[];for(const c of pool){if(cards.length>=42)break;const n=Math.min(c.cost<=3?3:2,42-cards.length);for(let k=0;k<n;k++)cards.push(c.id)}
+ return{name,legends:L.map(l=>l.id),cards};
+}
+const PRESETS=[
+ autoDeck("Auto · Rojo/Amarillo",["V: Streetkid","Dexter DeShawn","Rogue Amendiares"]),
+ autoDeck("Auto · Verde/Azul",["Goro Takemura: Hands Unclean","Padre","Wakako Okada"]),
+ autoDeck("Auto · Rojo/Verde Arasaka",["Yorinobu Arasaka","Saburo Arasaka","Goro Takemura: Hands Unclean"]),
+];
+let DECKS=LS.get("cp_decks2",null)||PRESETS;
+const saveDecks=()=>LS.set("cp_decks2",DECKS);
+
+/* ================= UI HELPERS ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const IMGS={};
+function idbOpen(){return new Promise((r,j)=>{try{const q=indexedDB.open("ncs_imgs",1);q.onupgradeneeded=()=>q.result.createObjectStore("i");q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)}catch(e){j(e)}})}
+async function loadImgs(){try{const db=await idbOpen();const st=db.transaction("i").objectStore("i");const req=st.openCursor();req.onsuccess=()=>{const c=req.result;if(c){IMGS[c.key]=URL.createObjectURL(c.value);c.continue()}else{renderDB();if(G)render()}}}catch(e){}}
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"");
+async function addImgs(files){let ok=0,miss=[];let db=null;try{db=await idbOpen()}catch(e){}
+ for(const f of files){const base=norm(f.name.replace(/\.[^.]+$/,""));
+  const c=CARDS.find(c=>norm(c.id)===base)||CARDS.find(c=>norm(c.name)===base)||CARDS.find(c=>base.includes(norm(c.name)))||CARDS.find(c=>norm(c.name).startsWith(base));
+  if(!c){miss.push(f.name);continue}IMGS[c.id]=URL.createObjectURL(f);ok++;
+  if(db)try{db.transaction("i","readwrite").objectStore("i").put(f,c.id)}catch(e){}}
+ renderDB();$("#imgRes").textContent=`${ok} imágenes asignadas.`+(miss.length?` Sin carta: ${miss.slice(0,8).join(", ")}${miss.length>8?"…":""}`:"")}
+const fileOf=c=>{const [n,sub]=[c.base||c.name,c.name.includes(": ")?c.name.split(": ").slice(1).join(": "):""];return "renombradas/"+encodeURIComponent((c.id+" - "+n+(sub?" "+sub:"")).replace(/[\\/:*?"<>|]/g,"").trim()+".webp")};
+const imgOf=c=>IMGS[c.id]||(c.official&&location.protocol.startsWith("http")&&!location.hostname.endsWith("claude.ai")&&!location.hostname.includes("claudeusercontent")?fileOf(c):null);
+function cardHTML(c,extra="",cls=""){
+ if(!c||!c.name)return"";
+ const txt=esc((c.textES!=null?c.textES:c.text)||"").replace(/\{(\w[\w ]*)\}/g,'<span class="kw">$1</span>').replace(/\n/g,"<br>");
+ const man=(c.manual||[]).length?`<span title="Parte del texto se resuelve con Herramientas" style="color:var(--p)">⚠</span>`:`<span title="Automatizada" style="color:var(--green)">✓</span>`;
+ const showPow=c.power!=null&&c.type!=="Program";
+ if(imgOf(c)&&!cls.includes("text")){
+  const orig=byId(c.id);const pw=showPow&&orig&&orig.power!==c.power?`<div class="pbadge ${c.power>orig.power?"up":"down"}">${c.power}</div>`:"";
+  return `<div class="card img ${c.color} ${cls}" ${extra} title="${esc(c.name)}"><img src="${imgOf(c)}" alt="${esc(c.name)}" loading="lazy" onerror="this.parentNode.outerHTML=cardHTML(byId('${c.id}'),'','text mini')">${pw}<div class="man">${man}</div></div>`;
+ }
+ return `<div class="card ${c.color} ${cls}" ${extra}><div class="top"><span class="cost">${c.cost??"–"}</span><span class="type">${c.type} · RAM ${c.ram||0} ${man}</span></div>
+ ${c.sell?'<span class="sell">€$ vendible</span>':''}<div class="name">${esc(c.name)}</div>${c.tags&&c.tags.length?`<div class="type">${esc(c.tags.join(" · "))}</div>`:""}<div class="txt">${txt}</div>${showPow?`<div class="pow">${c.type==="Gear"?"+":""}${c.power}</div>`:""}</div>`;
+}
+function zoom(c){if(!c)return;modal(`<div style="display:flex;gap:14px;flex-wrap:wrap">${imgOf(c)?`<img src="${imgOf(c)}" style="width:260px;border-radius:12px">`:""}<div style="flex:1;min-width:220px">${cardHTML(c,"","text")}</div></div><div class="row" style="margin-top:10px"><button class="pri" onclick="closeModal()">Cerrar</button></div>`)}
+
+
+function modal(html){$("#mbox").innerHTML=html;$("#modal").style.display="flex"}
+function closeModal(){$("#modal").style.display="none"}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));b.classList.add("on");document.querySelectorAll("section").forEach(s=>s.classList.remove("on"));$("#"+b.dataset.t).classList.add("on");if(b.dataset.t==="build")renderBuild();if(b.dataset.t==="db")renderDB();if(b.dataset.t==="play")fillDeckSelects()});
+
+/* ================= DECK VALIDATION ================= */
+function validate(d){
+ const errs=[];const L=d.legends.map(byId).filter(Boolean);
+ if(L.length!==3)errs.push("Necesitas exactamente 3 Legends.");
+ if(new Set(L.map(l=>l.name)).size!==L.length)errs.push("Las Legends deben tener nombres distintos.");
+ if(d.cards.length<40||d.cards.length>50)errs.push(`El mazo tiene ${d.cards.length} cartas (40-50).`);
+ const cnt={};d.cards.forEach(i=>cnt[i]=(cnt[i]||0)+1);
+ Object.entries(cnt).forEach(([i,n])=>{if(n>3)errs.push(`${byId(i)?.name||i}: ${n} copias (máx. 3).`)});
+ const ram={};L.forEach(l=>ram[l.color]=(ram[l.color]||0)+(l.ram||0));
+ new Set(d.cards).forEach(i=>{const c=byId(i);if(!c){errs.push("Carta desconocida: "+i);return}
+  if((c.ram||0)>(ram[c.color]||0))errs.push(`${c.name}: RAM ${c.color} ${c.ram} > ${ram[c.color]||0}.`)});
+ return errs;
+}
+
+/* ================= BUILDER ================= */
+let cur=null;
+function renderBuild(){
+ $("#dsel").innerHTML=DECKS.map((d,i)=>`<option value="${i}">${esc(d.name)}</option>`).join("");
+ if(!cur)loadDeck(0);else drawBuild();
+}
+function loadDeck(i){const d=DECKS[i];cur=d?JSON.parse(JSON.stringify(d)):{name:"Nuevo mazo",legends:[],cards:[]};cur._i=d?i:null;$("#dname").value=cur.name;$("#dsel").value=i;drawBuild()}
+$("#dsel").onchange=e=>loadDeck(+e.target.value);
+$("#dnew").onclick=()=>{cur={name:"Nuevo mazo",legends:[],cards:[],_i:null};$("#dname").value=cur.name;drawBuild()};
+$("#dsave").onclick=()=>{cur.name=$("#dname").value||"Mazo";const d={name:cur.name,legends:cur.legends,cards:cur.cards};if(cur._i==null){DECKS.push(d);cur._i=DECKS.length-1}else DECKS[cur._i]=d;saveDecks();renderBuild();$("#dsel").value=cur._i};
+$("#ddel").onclick=()=>{if(cur._i!=null){DECKS.splice(cur._i,1);saveDecks();cur=null;renderBuild()}};
+$("#dexp").onclick=()=>{const t=deckToText(cur);modal(`<h2>Exportar mazo</h2><p class="hint">Copia este texto para compartirlo o importarlo en otro dispositivo.</p><textarea readonly>${esc(t)}</textarea><button onclick="closeModal()">Cerrar</button>`)};
+$("#dimp").onclick=()=>modal(`<h2>Importar mazo</h2><p class="hint">Formato por líneas: <code>3 Nombre o ID</code>. Las Legends se detectan solas. También acepta JSON.</p><textarea id="impT" placeholder="1 Jackie, el Grande&#10;3 Merc de Gatillo Fácil&#10;..."></textarea><div class="row"><button class="pri" onclick="doImport()">Importar</button><button onclick="closeModal()">Cancelar</button></div><div id="impE" class="bad"></div>`);
+function deckToText(d){const lines=[`# ${d.name}`];d.legends.forEach(i=>lines.push(`1 ${byId(i)?.name||i}`));const cnt={};d.cards.forEach(i=>cnt[i]=(cnt[i]||0)+1);Object.entries(cnt).forEach(([i,n])=>lines.push(`${n} ${byId(i)?.name||i}`));return lines.join("\n")}
+window.doImport=function(){
+ const t=$("#impT").value.trim();let d={name:"Importado",legends:[],cards:[]},miss=[];
+ try{if(t.startsWith("{")){const j=JSON.parse(t);d={name:j.name||"Importado",legends:j.legends||[],cards:j.cards||[]}}else{
+  t.split(/\n/).forEach(l=>{l=l.trim();if(!l)return;if(l.startsWith("#")){d.name=l.slice(1).trim();return}
+   const m=l.match(/^(\d+)\s*x?\s+(.+)$/i);const n=m?+m[1]:1,key=(m?m[2]:l).trim().toLowerCase();
+   const c=CARDS.find(c=>c.id.toLowerCase()===key||c.name.toLowerCase()===key);
+   if(!c){miss.push(l);return}if(c.type==="Legend")d.legends.push(c.id);else for(let k=0;k<n;k++)d.cards.push(c.id)})}}
+ catch(e){$("#impE").textContent="Formato no válido";return}
+ if(miss.length){$("#impE").textContent="No encontradas: "+miss.join(", ")}
+ DECKS.push(d);saveDecks();cur=null;renderBuild();loadDeck(DECKS.length-1);if(!miss.length)closeModal();
+};
+["#bq","#bc","#bt"].forEach(s=>$(s).oninput=drawBuild);
+function drawBuild(){
+ const q=$("#bq").value.toLowerCase(),fc=$("#bc").value,ft=$("#bt").value;
+ const list=CARDS.filter(c=>(!fc||c.color===fc)&&(!ft||c.type===ft)&&(c.name+" "+(c.text||"")).toLowerCase().includes(q));
+ $("#bpool").innerHTML=list.map(c=>cardHTML(c,`data-id="${c.id}"`)).join("");
+ $("#bpool").querySelectorAll(".card").forEach(el=>el.oncontextmenu=e=>{e.preventDefault();zoom(byId(el.dataset.id))});$("#bpool").querySelectorAll(".card").forEach(el=>el.onclick=()=>{const c=byId(el.dataset.id);
+  if(c.type==="Legend"){if(cur.legends.includes(c.id))return;if(cur.legends.length>=3)cur.legends.shift();cur.legends.push(c.id)}
+  else cur.cards.push(c.id);drawBuild()});
+ $("#blg").innerHTML=cur.legends.map((i,k)=>`<div><span>${esc(byId(i)?.name)} <span class="hint">${byId(i)?.color} RAM ${byId(i)?.ram}</span></span><button onclick="cur.legends.splice(${k},1);drawBuild()">✕</button></div>`).join("")||'<span class="hint">Elige 3</span>';
+ const cnt={};cur.cards.forEach(i=>cnt[i]=(cnt[i]||0)+1);
+ $("#bdk").innerHTML=Object.entries(cnt).map(([i,n])=>`<div><span>${n}× ${esc(byId(i)?.name||i)}</span><span><button onclick="cur.cards.push('${i}');drawBuild()">+</button><button onclick="cur.cards.splice(cur.cards.indexOf('${i}'),1);drawBuild()">−</button></span></div>`).join("");
+ $("#bcnt").textContent=cur.cards.length;
+ const e=validate(cur);$("#dval").innerHTML=e.length?e.map(x=>`<div class="bad">✕ ${esc(x)}</div>`).join(""):'<div class="ok">✓ Mazo legal</div>';
+}
+
+/* ================= DB ================= */
+function renderDB(){const q=($("#dbq").value||"").toLowerCase();$("#dbgrid").innerHTML=CARDS.filter(c=>(c.name+" "+c.text+" "+c.id).toLowerCase().includes(q)).map(c=>cardHTML(c,`data-zid="${c.id}"`)).join("");$("#dbgrid").querySelectorAll("[data-zid]").forEach(e=>e.onclick=()=>zoom(byId(e.dataset.zid)))}
+$("#dbq").oninput=renderDB;
+$("#cexp").onclick=()=>modal(`<h2>Base de cartas (JSON)</h2><textarea readonly style="min-height:300px">${esc(JSON.stringify(CARDS,null,1))}</textarea><button onclick="closeModal()">Cerrar</button>`);
+$("#cimp").onclick=()=>modal(`<h2>Importar cartas</h2><p class="hint">Pega un array JSON de cartas. Las que tengan un ID existente se actualizan; el resto se añaden.</p><textarea id="cimpT" style="min-height:260px"></textarea><div class="row"><button class="pri" onclick="doCImp()">Importar</button><button onclick="closeModal()">Cancelar</button></div><div id="cimpE" class="bad"></div>`);
+window.doCImp=()=>{try{let a=JSON.parse($("#cimpT").value);if(!Array.isArray(a))a=[a];a.forEach(c=>{if(!c.id||!c.name||!c.type)throw 0;const i=CARDS.findIndex(x=>x.id===c.id);if(i>=0)CARDS[i]=c;else CARDS.push(c)});c.official=false;prep(c);LS.set("cp_extra",CARDS.filter(x=>!x.official));closeModal();renderDB()}catch(e){$("#cimpE").textContent="JSON no válido (cada carta necesita id, name y type)"}};
+$("#creset").onclick=()=>{CARDS=OFFICIAL.map(prep);try{localStorage.removeItem("cp_extra")}catch(e){};renderDB()};
+
+/* ================= ENGINE ================= */
+let G=null;let uid=0;
+const rnd=n=>1+Math.floor(Math.random()*n);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function log(m){G.log.unshift(m);if(G.log.length>200)G.log.pop();if(G.p&&G.p[G.cur]&&G.p[G.cur].bot&&!/^— Turno/.test(m))toast(m)}
+function toast(m){const box=$("#toasts");const d=document.createElement("div");d.className="toast";d.textContent=m.trim();box.appendChild(d);while(box.children.length>4)box.firstChild.remove();setTimeout(()=>{d.style.opacity="0";setTimeout(()=>d.remove(),400)},3200)}
+function inst(id){return{uid:++uid,c:byId(id),spent:false,lag:false,tmp:0,gear:[],solo:false}}
+function newPlayer(deck,name,bot){
+ const p={name,bot,deck:shuffle(deck.cards.map(inst)),hand:[],field:[],eddies:[],legends:shuffle(deck.legends.map(id=>({...inst(id),face:false}))),
+  fixer:[4,6,8,10,12,20],gigs:[],trash:[],sold:false,called:false,temp:0,turns:0};
+ for(let i=0;i<6;i++)p.hand.push(p.deck.pop());return p;
+}
+function fillDeckSelects(){const o=DECKS.map((d,i)=>`<option value="${i}" ${validate(d).length?'style="color:#888"':''}>${esc(d.name)}${validate(d).length?" (ilegal)":""}</option>`).join("");$("#deck1").innerHTML=o;$("#deck2").innerHTML=o;if(DECKS.length>1)$("#deck2").value=1}
+$("#startBtn").onclick=()=>{
+ const d1=DECKS[$("#deck1").value],d2=DECKS[$("#deck2").value];
+ const bot=$("#mode").value==="bot";
+ G={p:[newPlayer(d1,"Jugador 1",false),newPlayer(d2,bot?"Bot":"Jugador 2",bot)],cur:0,log:[],sel:null,mode:null,over:false,overtime:false,lvl:+$("#botlvl").value,first:true};
+ let a,b;do{a=rnd(20);b=rnd(20)}while(a===b);G.cur=a>b?0:1;
+ log(`Tirada inicial d20: ${G.p[0].name} ${a} – ${G.p[1].name} ${b}. Empieza ${G.p[G.cur].name}.`);
+ const f=G.p[G.cur];f.legends[0].spent=f.legends[1].spent=true;f.skipReady=true;
+ $("#setup").style.display="none";$("#game").style.display="block";
+ // mulligan
+ const humans=G.p.filter(p=>!p.bot);
+ G.p.filter(p=>p.bot).forEach(p=>{if(!p.hand.some(x=>x.c.cost<=2&&x.c.type==="Unit")){mulligan(p)}});
+ (function next(i){if(i>=humans.length){startTurn();return}const p=humans[i];
+  modal(`<h2>${p.name}: mano inicial</h2><div class="row">${p.hand.map(x=>cardHTML(x.c,"","mini")).join("")}</div><div class="row" style="margin-top:10px"><button class="pri" id="keep">Quedármela</button><button id="mull">Mulligan (1 vez)</button></div>`);
+  $("#keep").onclick=()=>{closeModal();next(i+1)};$("#mull").onclick=()=>{mulligan(p);closeModal();next(i+1)}})(0);
+};
+function mulligan(p){p.deck.push(...p.hand);p.hand=[];shuffle(p.deck);for(let i=0;i<6;i++)p.hand.push(p.deck.pop());log(`${p.name} hace mulligan.`)}
+const me=()=>G.p[G.cur],rival=()=>G.p[1-G.cur];
+const cred=p=>p.gigs.reduce((s,g)=>s+g.v,0);
+const has=(u,k)=>(u.c.keywords||[]).includes(k)||(k==="Blocker"&&u.gear.some(g=>(g.c.keywords||[]).includes("GrantBlocker")))||(u.grant||[]).includes(k);
+function power(u,p){let v=(u.c.power||0)+u.tmp;u.gear.forEach(g=>v+=(g.c.power||0));
+ if(/Royce/.test(u.c.name)&&u.c.type==="Legend"&&G.p[G.cur]===p)v+=2*u.gear.length;return Math.max(0,v)}
+function payable(p){return p.legends.filter(l=>!l.spent&&!l.gone&&(!l.face||l.c.sell))}
+function avail(p){return p.eddies.filter(e=>!e.spent).length+payable(p).length+p.temp}
+function pay(p,n,except){
+ if(avail(p)<n)return false;let t=Math.min(p.temp,n);p.temp-=t;n-=t;
+ for(const e of p.eddies){if(n<=0)break;if(!e.spent){e.spent=true;n--}}
+ const ls=payable(p).filter(l=>l!==except).sort((a,b)=>a.face-b.face);
+ for(const l of ls){if(n<=0)break;l.spent=true;n--}
+ return n<=0;
+}
+function draw(p,n=1){for(let i=0;i<n;i++){if(G.over)return;if(!p.deck.length){log(`${p.name} no puede robar: ¡pierde por deck-out!`);end(G.p.indexOf(p)===0?1:0);return}p.hand.push(p.deck.pop())}}
+function startTurn(){
+ if(G.over)return;const p=me();p.turns++;p.sold=false;p.called=false;p.temp=0;p.playedProgram=false;
+ if(p.gigs.length>=7){log(`${p.name} empieza el turno con ${p.gigs.length} Gigs.`);return end(G.cur)}
+ if(!p.skipReady){p.field.forEach(u=>{if(!u.noReady)u.spent=false;u.noReady=false});p.eddies.forEach(e=>e.spent=false);p.legends.forEach(l=>l.spent=false)}p.skipReady=false;
+ log(`— Turno ${p.turns} de ${p.name} —`);
+ draw(p);if(G.over)return;
+ if(p.fixer.length){
+  if(p.bot){const opts=p.fixer.filter(s=>s!==20||p.fixer.length===1);gainGig(p,Math.max(...opts))}
+  else{G.mode="gig";}
+ }
+ render();if(p.bot&&!G.over)setTimeout(botTurn,1200);
+}
+function gainGig(p,s){p.fixer.splice(p.fixer.indexOf(s),1);const v=rnd(s);p.gigs.push({s,v,id:++uid});log(`${p.name} gana un Gig: d${s} → ${v}. (Street Cred ${cred(p)})`);G.mode=null;checkOvertime()}
+function checkOvertime(){if(G.overtime&&!G.over){for(let i of[G.cur,1-G.cur])if(G.p[i].gigs.length>=7){log(`Overtime: ${G.p[i].name} alcanza 7 Gigs.`);return end(i)}}}
+function endTurn(){
+ if(G.over)return;const p=me();
+ // end of turn effects (simple ones)
+ p.field.forEach(u=>{if(u.gear.some(g=>/Sandevistan/.test(g.c.name)))u.spent=false;if(/Modded Muramasa/.test(u.c.name)&&cred(p)<cred(rival()))u.spent=false});
+ if(p.field.some(u=>/Saul Bright/.test(u.c.name))){p.field.filter(u=>u.spent).slice(0,3).forEach(u=>u.spent=false)}
+ p.field.filter(u=>/Modded Kusanagi/.test(u.c.name)).forEach(u=>{p.field.splice(p.field.indexOf(u),1);u.gear.forEach(g=>p.hand.push(g));u.gear=[];p.hand.push(u);log(`  ${u.c.name} vuelve a la mano.`)});
+ G.p.forEach(q=>q.field.forEach(u=>{u.tmp=0;u.lag=false;u.grant=[]}));p.temp=0;G.sel=null;G.mode=null;
+ if(!G.overtime&&!G.p[0].fixer.length&&!G.p[1].fixer.length&&G.p[0].turns>=7&&G.p[1].turns>=7){G.overtime=true;log("⚠ ¡OVERTIME! Quien tenga 7 Gigs en cualquier momento gana.");checkOvertime();if(G.over)return}
+ G.cur=1-G.cur;
+ if(!G.p[0].bot&&!G.p[1].bot&&!G.over){render();modal(`<h2>Turno de ${me().name}</h2><p>Pasa el dispositivo.</p><button class="pri" onclick="closeModal();startTurn()">Listo</button>`);return}
+ startTurn();
+}
+function end(w){if(G.over)return;G.over=true;log(`🏆 ¡${G.p[w].name} es la nueva Leyenda de Night City!`);render();modal(`<h2>🏆 ${G.p[w].name} gana</h2><p>Gigs: ${G.p[0].name} ${G.p[0].gigs.length} – ${G.p[1].name} ${G.p[1].gigs.length}</p><button class="pri" onclick="closeModal();location.reload()">Nueva partida</button> <button onclick="closeModal()">Ver tablero</button>`)}
+
+/* --- effects --- */
+function condOk(c,p,self){const o=G.p[1-G.p.indexOf(p)];switch(c){
+ case"moreCred":return cred(p)>cred(o);case"lessCred":return cred(p)<cred(o);case"evenCred":return p.gigs.length>0&&cred(p)%2===0;
+ case"gig8":return p.gigs.some(g=>g.v>=8);case"pow5":return self&&power(self,p)>=5;case"behind2":return o.gigs.length-p.gigs.length>=2;
+ case"minGig":return p.gigs.some(g=>g.v===1);case"pair":{const v=p.gigs.map(g=>g.v);return new Set(v).size<v.length}
+ case"allUp":return p.legends.every(l=>l.face||l.gone);case"diff2":return new Set(p.gigs.map(g=>g.v)).size>=2;default:return true}}
+function runFx(card,on,p,self,done){
+ const list=(card.fx||[]).filter(f=>f.on===on);
+ for(const f of list){
+  if(f.choose){const opts=f.choose.filter(o=>o.acts.length);if(!opts.length)continue;
+   if(p.bot){doActs(card,opts.find(o=>o.acts[0].do!=="draw")&&rival().field.length?opts.find(o=>o.acts[0].do!=="draw"):opts[opts.length-1],p,self)}
+   else{const rest=list.slice(list.indexOf(f)+1);
+    modal(`<h2>${esc(card.name)}: elige un efecto</h2><div class="row">${opts.map((o,k)=>`<button data-o="${k}">${esc(o.label)}</button>`).join("")}</div>`);
+    $("#mbox").querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{closeModal();doActs(card,opts[+b.dataset.o],p,self);rest.forEach(r=>doActs(card,{acts:[r]},p,self));render()});
+    return}
+   continue}
+  doActs(card,{acts:[f]},p,self);
+ }
+}
+function doActs(card,opt,p,self){
+ const o=G.p[1-G.p.indexOf(p)];let milled=[];
+ for(const f of opt.acts){
+  if(G.over)return;
+  if(f.cond&&!condOk(f.cond,p,self)){log(`  (${card.name}: condición no cumplida)`);continue}
+  switch(f.do){
+   case"draw":draw(p,f.n);log(`  ${card.name}: ${p.name} roba ${f.n}.`);break;
+   case"buff":if(self){self.tmp+=f.n;log(`  ${self.c.name} +${f.n} de poder.`)}break;
+   case"buffOne":{const t=p.field.slice().sort((a,b)=>(+b.spent-+a.spent)||(power(b,p)-power(a,p))).find(u=>!u.spent)||p.field[0];if(t){t.tmp+=f.n;log(`  ${t.c.name} +${f.n} de poder.`)}break}
+   case"defeat":{const t=pickTarget(o.field.filter(u=>power(u,o)<=f.n),o);if(t){log(`  ${card.name} derrota a ${t.c.name}.`);defeat(o,t)}break}
+   case"defeatCost":{const t=pickTarget(o.field.filter(u=>(u.c.cost||0)<=f.n),o);if(t){log(`  ${card.name} derrota a ${t.c.name}.`);defeat(o,t)}break}
+   case"defeatSpent":{const t=pickTarget(o.field.filter(u=>u.spent),o);if(t){log(`  ${card.name} derrota a ${t.c.name}.`);defeat(o,t)}break}
+   case"defeatLess":{const mx=Math.max(-1,...p.field.map(u=>power(u,p)));const t=pickTarget(o.field.filter(u=>power(u,o)<mx),o);if(t){log(`  ${card.name} derrota a ${t.c.name}.`);defeat(o,t)}break}
+   case"wipe":[...p.field.filter(u=>u!==self),...o.field].forEach(u=>defeat(p.field.includes(u)?p:o,u));log(`  ${card.name} derrota a todas las demás Units.`);break;
+   case"eachDefeat":[p,o].forEach(q=>{const t=q.field.slice().sort((a,b)=>power(a,q)-power(b,q))[0];if(t){log(`  ${q.name} derrota a ${t.c.name}.`);defeat(q,t)}});break;
+   case"weaken":{const t=pickTarget(o.field,o);if(t){t.tmp-=f.n;log(`  ${t.c.name} −${f.n} de poder.`)}break}
+   case"weakenAll":o.field.forEach(u=>u.tmp-=f.n);log(`  Units rivales −${f.n}.`);break;
+   case"spendRival":{const t=pickTarget(o.field.filter(u=>!u.spent&&(u.c.cost||0)<=f.n),o);if(t){t.spent=true;if(/can't ready/.test(card.text))t.noReady=true;log(`  ${t.c.name} queda agotada.`)}break}
+   case"spendBoth":{if(self)self.spent=true;const t=pickTarget(o.field.filter(u=>!u.spent),o);if(t){t.spent=true;log(`  ${t.c.name} queda agotada.`)}break}
+   case"spendAll":o.field.forEach(u=>u.spent=true);log(`  Todas las Units rivales agotadas.`);break;
+   case"spendPairs":{const v=p.gigs.map(g=>g.v);let pairs=0;const c={};v.forEach(x=>c[x]=(c[x]||0)+1);Object.values(c).forEach(n=>pairs+=Math.floor(n/2));for(let i=0;i<pairs;i++){const t=pickTarget(o.field.filter(u=>!u.spent),o);if(t)t.spent=true}break}
+   case"bumpGig":{const g=[...p.gigs].filter(g=>g.v<g.s).sort((a,b)=>(b.s-b.v>=f.n)-(a.s-a.v>=f.n)||b.s-a.s)[0];if(g){g.v=Math.min(g.s,g.v+f.n);log(`  Tu d${g.s} sube a ${g.v}.`)}break}
+   case"dropGig":{const g=[...o.gigs].sort((a,b)=>b.v-a.v)[0];if(g&&g.v>1){g.v=Math.max(1,g.v-f.n);log(`  d${g.s} rival baja a ${g.v}.`)}break}
+   case"trashHand":for(let k=0;k<f.n;k++)if(o.hand.length){const i=Math.floor(Math.random()*o.hand.length);const c=o.hand.splice(i,1)[0];o.trash.push(c);log(`  ${o.name} descarta ${c.c.name}.`)}break;
+   case"mill":milled=[];for(let k=0;k<f.n&&p.deck.length;k++){const c=p.deck.pop();p.trash.push(c);milled.push(c)}log(`  ${p.name} manda ${milled.length} cartas del mazo al trash.`);break;
+   case"fetchMilled":{const c=milled.find(x=>x.c.type===f.n);if(c){p.trash.splice(p.trash.indexOf(c),1);p.hand.push(c);log(`  Añade ${c.c.name} a la mano.`)}break}
+   case"recur":{const c=p.trash.filter(x=>x.c.type===f.n&&x!==self).sort((a,b)=>b.c.cost-a.c.cost)[0];if(c){p.trash.splice(p.trash.indexOf(c),1);p.hand.push(c);log(`  Recupera ${c.c.name} del trash.`)}break}
+   case"swap":{const a=[...p.gigs].sort((x,y)=>x.v-y.v)[0],b=[...o.gigs].sort((x,y)=>y.v-x.v)[0];if(a&&b&&b.v>a.v){p.gigs.splice(p.gigs.indexOf(a),1,b);o.gigs.splice(o.gigs.indexOf(b),1,a);log(`  Intercambia tu d${a.s}=${a.v} por el d${b.s}=${b.v} rival.`)}break}
+   case"freeCall":callLegend(p,true);break;
+   case"bottomLow":{const t=o.field.slice().sort((a,b)=>power(a,o)-power(b,o))[0];if(t)bottom(o,t);break}
+   case"bottomZero":{const t=o.field.find(u=>power(u,o)===0);if(t)bottom(o,t);break}
+   case"bottomZeroAll":o.field.filter(u=>power(u,o)===0).forEach(u=>bottom(o,u));break;
+   case"sellTop":if(p.deck.length){p.deck.pop();p.eddies.push({spent:false,uid:++uid});log(`  Vende la carta superior del mazo.`)}break;
+  }
+ }
+}
+function bottom(o,u){const i=o.field.indexOf(u);if(i<0)return;o.field.splice(i,1);u.gear.forEach(g=>o.deck.unshift(g));u.gear=[];if(u.solo||u.c.type==="Legend"){log(`  ${u.c.name} sale del juego.`)}else{o.deck.unshift(u);log(`  ${u.c.name} va al fondo del mazo.`)}}
+function pickTarget(list,o){if(!list.length)return null;return list.sort((a,b)=>power(b,o)-power(a,o))[0]}
+function defeat(o,u){
+ const i=o.field.indexOf(u);if(i<0)return;
+ const dm=u.gear.find(g=>/Deadman Transmitter/.test(g.c.name));if(dm){u.gear.splice(u.gear.indexOf(dm),1);o.trash.push(dm);log(`  Deadman Transmitter se sacrifica por ${u.c.name}.`);return}
+ o.field.splice(i,1);
+ u.gear.forEach(g=>o.trash.push(g));u.gear=[];u.tmp=0;
+ if(u.solo){log(`  ${u.c.name} (Go Solo) sale del juego.`);}else{o.trash.push(u);log(`  ${u.c.name} es derrotada.`)}
+ runFx(u.c,"defeated",o,u);
+}
+function stealGigs(p,o,n,actor){for(let i=0;i<n&&o.gigs.length;i++){const g=[...o.gigs].sort((a,b)=>b.v-a.v)[0];o.gigs.splice(o.gigs.indexOf(g),1);p.gigs.push(g);log(`  💰 ${p.name} roba un Gig (d${g.s}=${g.v}).`);
+  if(actor&&/Roamer of the Badlands/.test(actor.c.name)){g.v=Math.min(g.s,g.v+5);log(`  V lo sube a ${g.v}.`)}}checkOvertime()}
+
+/* --- actions --- */
+function effCost(p,c){let k=c.cost||0;const g8=p.gigs.filter(g=>g.v>=8).length;
+ if(/^Play this (Unit|Program) for -1 €\$ for each friendly Gig with 8\+/m.test(c.text))k=Math.max(1,k-g8);
+ if(/for -1 €\$ for each Unit in your trash/.test(c.text))k=Math.max(1,k-p.trash.filter(x=>x.c.type==="Unit").length);
+ if(/for -1 €\$ for each of a Rival/.test(c.text))k=Math.max(1,k-rival().field.length);
+ if(/for -1 €\$ for each friendly face-up Legend/.test(c.text))k=Math.max(1,k-p.legends.filter(l=>l.face).length);
+ if(/^If a Rival controls at least 2 more Gigs than you, play this Program for 3/.test(c.text)&&G.p[1-G.p.indexOf(p)].gigs.length-p.gigs.length>=2)k=Math.min(k,3);
+ if(/^If your fixer area is empty, play this Program for 1/.test(c.text)&&!p.fixer.length)k=1;
+ return k}
+function canPlay(p,x){if(x.c.type==="Gear"&&!p.field.length&&!p.legends.some(l=>l.face&&!l.gone))return false;return avail(p)>=effCost(p,x.c)}
+function playCard(p,x,host){
+ const k=effCost(p,x.c);if(!pay(p,k))return;p.hand.splice(p.hand.indexOf(x),1);log(`${p.name} juega ${x.c.name} (${k} €$).`);
+ if(x.c.type==="Unit"){x.lag=true;x.spent=false;x.grant=[];p.field.push(x);runFx(x.c,"play",p,x)}
+ else if(x.c.type==="Program"){p.playedProgram=true;runFx(x.c,"play",p,null);p.trash.push(x)}
+ else if(x.c.type==="Gear"){
+  if(!host){host=p.field.slice().sort((a,b)=>power(b,p)-power(a,p))[0];if(!host){const l=p.legends.find(l=>l.face&&!l.gone);if(l){l.gear=l.gear||[];host=l}}}
+  if(host){(host.gear=host.gear||[]).push(x);log(`  equipado a ${host.c.name}.`)}else p.trash.push(x);runFx(x.c,"play",p,host)}
+}
+function sell(p,x){if(p.sold||!x.c.sell)return;p.sold=true;p.hand.splice(p.hand.indexOf(x),1);p.eddies.push({spent:false,uid:++uid});log(`${p.name} vende ${x.c.name} como Eddie.`)}
+function callLegend(p,free){
+ const fd=p.legends.filter(l=>!l.face&&!l.gone);if(p.called||!fd.length||(!free&&avail(p)<1))return false;
+ const l=fd[Math.floor(Math.random()*fd.length)];
+ if(!free)pay(p,1);p.called=true;l.face=true;l.gear=l.gear||[];log(`${p.name} hace Call a Legend${free?" gratis":""}: ¡${l.c.name}!`);runFx(l.c,"call",p,null);return true;
+}
+function soloCost(p,l){return (l.c.cost||0)+(rival().field.some(u=>u.gear.some(g=>/Riot Shield/.test(g.c.name)))?2:0)}
+function goSolo(p,l){if(!(l.c.keywords||[]).includes("GoSolo")||!l.face||l.gone||l.c.cost==null)return;
+ const k=soloCost(p,l);if(avail(p)-(payable(p).includes(l)?1:0)<k)return;pay(p,k,l);
+ l.gone=true;const u={...inst(l.c.id),solo:true,lag:true,spent:l.spent,gear:l.gear||[],grant:[]};p.field.push(u);log(`${p.name}: ${l.c.name} va Go Solo (${power(u,p)} de poder).`);runFx(l.c,"play",p,u)}
+function canAttack(p,u){if(u.spent)return false;if(/^This Unit can't attack/m.test(u.c.text))return false;
+ if(/can't attack unless you played a Program/.test(u.c.text)&&!p.playedProgram)return false;if(u.cantAtk)return false;
+ if(u.lag&&!(has(u,"Adrenaline")||u.solo||(u.gear.some(g=>/Adrenaline Converter/.test(g.c.name))&&rival().gigs.length-p.gigs.length>=2)||(/attack their Gig area the turn/.test(u.c.text)&&rival().gigs.length>p.gigs.length)||/can attack rival Units the turn it's played/.test(u.c.text)))return false;
+ if(rival().field.some(x=>/Rival Units can't attack the turn they're played/.test(x.c.text))&&u.lag)return false;
+ return true}
+function canHitGigs(p,u){if(/can only attack rival Units/.test(u.c.text))return false;if(u.lag&&!has(u,"Adrenaline")&&!u.solo&&/can attack rival Units the turn/.test(u.c.text))return false;return rival().gigs.length>0}
+function attack(p,u,target){ // target: unit or "gigs"
+ const o=G.p[1-G.p.indexOf(p)];u.spent=true;log(`${p.name} ataca con ${u.c.name} → ${target==="gigs"?"zona de Gigs":target.c.name}.`);
+ if(/Saul Bright/.test(p.field.map(x=>x.c.name).join("|"))&&!/Saul Bright/.test(u.c.name))u.tmp+=2;
+ if(/ARASAKA|Arasaka/.test((u.c.tags||[]).join())&&p.legends.some(l=>l.face&&/Saburo/.test(l.c.name)))u.tmp+=1;
+ const fin=()=>{if(!p.field.includes(u)||(target!=="gigs"&&!o.field.includes(target)))return finishAttack();defend(o,p,u,target,()=>finishAttack())};
+ runFx(u.c,"attack",p,u);
+ if(G.mode==="choiceWait"){}
+ fin();
+}
+function resolveAttack(p,o,u,target,redirected){
+ if(!p.field.includes(u))return;
+ if(target==="gigs"){const pw=power(u,p);const n=pw<=0?0:1+Math.floor(pw/10);log(`  ${u.c.name} (${pw}) roba ${n} Gig(s).`);stealGigs(p,o,n,u);return}
+ if(!o.field.includes(target)){log("  El objetivo ya no está.");return}
+ let a=power(u,p),b=power(target,o);
+ if(/wins all fights against CORPO/.test(u.c.text)&&(target.c.tags||[]).includes("Corpo"))b=-1;
+ log(`  Pelea: ${u.c.name} ${a} vs ${target.c.name} ${b<0?"(Corpo)":b}.`);
+ const aWins=a>b,bWins=b>a;
+ if(!bWins&&a>0)defeat(o,target);else if(!bWins&&a===0&&/loses a fight, defeat the opposing/.test(target.c.text))defeat(p,u);
+ if(!aWins&&b>0)defeat(p,u);
+ if(aWins&&/loses a fight, defeat the opposing/.test(target.c.text))defeat(p,u);
+ if(bWins&&/loses a fight, defeat the opposing/.test(u.c.text))defeat(o,target);
+ if(aWins&&p.field.includes(u)&&u.gear.some(g=>/Satori/.test(g.c.name)))draw(p,1);
+ if(aWins&&p.field.includes(u)&&/first time this Unit wins a fight each turn, ready it/.test(u.c.text)&&!u.wonReady){u.wonReady=true;u.spent=false;log(`  ${u.c.name} se prepara.`)}
+}
+function finishAttack(){render();if(me().bot&&!G.over)setTimeout(botTurn,1300)}
+/* --- activated {Spend} effects --- */
+function activations(p,src,isLeg){const out=[];const add=(card,a,gearOf)=>out.push({card,a,src});
+ (src.c.acts||[]).forEach(a=>add(src.c,a));(src.gear||[]).forEach(g=>(g.c.acts||[]).forEach(a=>add(g.c,a)));return out}
+function activate(p,src,act){if(src.spent||(src.lag&&!src.solo))return;if(!act.a.ok)return;if(avail(p)-(payable(p).includes(src)?1:0)<act.a.cost)return;
+ src.spent=true;pay(p,act.a.cost,src);log(`${p.name} activa ${act.card.name}.`);doActs(act.card,{acts:act.a.acts},p,src);render()}
+
+/* --- defender reactions --- */
+function quickOpts(o,p,u){const out=[];
+ o.hand.filter(x=>x.c.type==="Program"&&has(x,"Quick")&&avail(o)>=effCost(o,x.c)).forEach(x=>out.push({kind:"prog",x,label:`${x.c.name} (${effCost(o,x.c)}€$)`}));
+ [...o.field,...o.legends.filter(l=>l.face&&!l.gone)].forEach(src=>activations(o,src).filter(a=>a.a.quick&&a.a.ok&&!src.spent&&!(src.lag)).forEach(a=>out.push({kind:"act",src,a,label:`${a.card.name} (activar)`})));
+ return out}
+function useQuick(o,p,u,q){
+ if(q.kind==="act"){activate(o,q.src,q.a);return}
+ const x=q.x,k=effCost(o,x.c);pay(o,k);o.hand.splice(o.hand.indexOf(x),1);log(`  ⚡ ${o.name} reacciona con ${x.c.name}.`);
+ // Quick programs aim at the attacking Unit when they hit a rival Unit
+ (x.c.fx||[]).forEach(f=>{if(f.on!=="play")return;
+  if(f.do==="weaken"){u.tmp-=f.n;log(`  ${u.c.name} −${f.n}.`)}
+  else if(f.do==="defeat"&&power(u,p)<=f.n)defeat(p,u);
+  else doActs(x.c,{acts:[f]},o,null)});
+ if(/steals 1 fewer Gig/.test(x.c.text))u.stealMinus=(u.stealMinus||0)+1;
+ if(/doesn't defeat the opposing friendly Unit/.test(x.c.text))u.noKill=true;
+ o.trash.push(x);
+}
+function defend(o,p,u,target,done){
+ const blockersOf=()=>/can't be blocked/.test(u.c.text)&&cred(p)<cred(o)?[]:o.field.filter(x=>!x.spent&&has(x,"Blocker")&&x!==target);
+ const canCall=()=>!o.called&&o.legends.some(l=>!l.face&&!l.gone)&&avail(o)>=1;
+ const fin=(blk)=>{if(blk){blk.spent=true;log(`  🛡 ${o.name} bloquea con ${blk.c.name}.`);
+   if(/When this Unit uses \{Blocker\}, increase a Gig by up to (\d)/.test(blk.c.text))doActs(blk.c,{acts:[{do:"bumpGig",n:+RegExp.$1}]},o,blk);
+   if(/When this Unit uses \{Blocker\}, a Rival discards 1/.test(blk.c.text))doActs(blk.c,{acts:[{do:"trashHand",n:1}]},o,blk);
+   resolveAttack(p,o,u,blk,true)}
+  else resolveAttack(p,o,u,target,false);done()};
+ if(!blockersOf().length&&!quickOpts(o,p,u).length&&!canCall())return fin(null);
+ if(o.bot){
+  const apw=power(u,p);
+  if(canCall()&&avail(o)>=2)callLegend(o);
+  const qs=quickOpts(o,p,u);const q=qs.find(q=>q.kind==="prog"&&(q.x.c.fx||[]).some(f=>(f.do==="defeat"&&f.n>=apw)||f.do==="weaken"));
+  if(q&&(target==="gigs"||power(target,o)<=apw)){useQuick(o,p,u,q);if(!p.field.includes(u))return done()}
+  const bl=blockersOf();
+  const b=bl.filter(x=>power(x,o)>power(u,p)).sort((a,b)=>power(a,o)-power(b,o))[0]||(target==="gigs"?bl.sort((a,b)=>power(a,o)-power(b,o))[0]:null);
+  return fin(b||null);
+ }
+ const box=()=>{
+  if(!p.field.includes(u)){closeModal();render();return done()}
+  const bl=blockersOf(),qs=quickOpts(o,p,u),cc=canCall();
+  modal(`<h2>${o.name}: ¡te atacan!</h2><p>${esc(u.c.name)} (${power(u,p)}) → ${target==="gigs"?"tus Gigs":esc(target.c.name)}. Tienes ${avail(o)} €$.</p>
+  <h3>Bloquear</h3><div class="row">${bl.map(x=>`<button data-b="${x.uid}">${esc(x.c.name)} (${power(x,o)})</button>`).join("")||'<span class="hint">—</span>'}</div>
+  <h3>Quick</h3><div class="row">${qs.map((q,k)=>`<button data-q="${k}">${esc(q.label)}</button>`).join("")||'<span class="hint">—</span>'}</div>
+  <div class="row" style="margin-top:10px">${cc?'<button id="dcall">Call a Legend (1€$)</button>':""}<button class="pri" id="dnone">No bloquear / continuar</button></div>`);
+  $("#mbox").querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{closeModal();fin(o.field.find(x=>x.uid==b.dataset.b))});
+  $("#mbox").querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{useQuick(o,p,u,qs[+b.dataset.q]);render();box()});
+  if(cc)$("#dcall").onclick=()=>{callLegend(o);render();box()};
+  $("#dnone").onclick=()=>{closeModal();fin(null)};
+ };
+ box();
+}
+
+/* ================= BOT ================= */
+function botTurn(){
+ if(G.over||!me().bot)return;const p=me(),o=rival();
+ if(document.querySelector("#modal").style.display==="flex"&&!G.over){return setTimeout(botTurn,500)}
+ if(!p.sold&&p.hand.length>1){const s=p.hand.filter(x=>x.c.sell).sort((a,b)=>b.c.cost-a.c.cost)[0];
+  const cheap=p.hand.filter(x=>(x.c.cost||0)<=avail(p)+1).length;if(s&&(p.hand.length>3||cheap<p.hand.length)){sell(p,s);return step()}}
+ if(!p.called&&avail(p)>=1&&p.legends.some(l=>!l.face&&!l.gone)&&(avail(p)>=3||p.turns>=2)){callLegend(p);return step()}
+ const solo=p.legends.find(l=>l.face&&!l.gone&&(l.c.keywords||[]).includes("GoSolo")&&l.c.cost!=null&&avail(p)-(payable(p).includes(l)?1:0)>=soloCost(p,l));
+ if(solo&&p.field.length<3&&p.turns>=3){goSolo(p,solo);return step()}
+ const playable=p.hand.filter(x=>canPlay(p,x)&&botWants(p,o,x)).sort((a,b)=>(b.c.cost||0)-(a.c.cost||0));
+ if(playable.length){playCard(p,playable[0]);return step()}
+ for(const src of[...p.field,...p.legends.filter(l=>l.face&&!l.gone)]){const a=activations(p,src).find(a=>a.a.ok&&!a.a.quick&&!src.spent&&!src.lag&&avail(p)-1>=a.a.cost&&!(src.c.type==="Unit"&&canAttack(p,src)));if(a){activate(p,src,a);return step()}}
+ const ready=p.field.filter(u=>canAttack(p,u)).sort((a,b)=>power(b,p)-power(a,p));
+ for(const u of ready){
+  const pw=power(u,p);if(pw===0&&!(u.c.fx||[]).some(f=>f.on==="attack"))continue;
+  const prey=o.field.filter(x=>x.spent&&power(x,o)<pw).sort((a,b)=>power(b,o)-power(a,o))[0];
+  const oppBlock=o.field.filter(x=>!x.spent&&has(x,"Blocker"));
+  const safe=!oppBlock.some(b=>power(b,o)>=pw);
+  const keepHome=G.lvl===1&&has(u,"Blocker")&&o.field.some(x=>!x.spent)&&ready.length===1;
+  if(keepHome)continue;
+  if(canHitGigs(p,u)&&pw>0&&(safe||G.lvl===2||pw>=10)&&!(u.lag&&/can attack rival Units the turn/.test(u.c.text))){attack(p,u,"gigs");return}
+  if(prey){attack(p,u,prey);return}
+  if(canHitGigs(p,u)&&pw>0&&G.lvl===2){attack(p,u,"gigs");return}
+ }
+ endTurn();
+ function step(){render();if(!G.over)setTimeout(botTurn,1100)}
+}
+function botWants(p,o,x){
+ const fx=(x.c.fx||[]).filter(f=>f.on==="play");
+ if(x.c.type==="Program"){
+  if(has(x,"Quick"))return false;
+  if(!fx.length)return p.hand.length>4;
+  const f=fx[0];
+  if(f.do==="defeat")return o.field.some(u=>power(u,o)<=f.n);
+  if(f.do==="defeatSpent")return o.field.some(u=>u.spent);
+  if(f.do==="defeatLess"||f.do==="bottomLow"||f.do==="weakenAll"||f.do==="spendAll")return o.field.length>0;
+  if(f.do==="eachDefeat")return o.field.length>p.field.length;
+  if(f.do==="spendRival")return o.field.some(u=>!u.spent);
+ }
+ if(x.c.type==="Gear")return p.field.length>0;
+ return true;
+}
+
+/* ================= MANUAL TOOLS (for effects the engine can't automate) ================= */
+function tools(){const p=me(),o=rival();
+ const units=[...p.field.map(u=>[p,u]),...o.field.map(u=>[o,u])];
+ modal(`<h2>Herramientas manuales</h2><p class="hint">Para resolver a mano los efectos que el motor no automatiza (marcados con ⚠).</p>
+ <div class="row"><button data-t="draw">Robar 1</button><button data-t="disc">Descartar 1 (al azar)</button><button data-t="eddie">Preparar 1 Eddie</button><button data-t="temp">+1 €$ temporal</button><button data-t="mill">Trash 1 del mazo</button><button data-t="recU">Trash → mano</button></div>
+ <h3>Mis Gigs</h3><div class="row">${p.gigs.map((g,i)=>`<span class="die">${g.v}<small>d${g.s}</small></span><button data-g="${i}" data-d="1">+</button><button data-g="${i}" data-d="-1">−</button>`).join("")||"—"}</div>
+ <h3>Gigs rivales</h3><div class="row">${o.gigs.map((g,i)=>`<span class="die">${g.v}<small>d${g.s}</small></span><button data-rg="${i}" data-d="1">+</button><button data-rg="${i}" data-d="-1">−</button>`).join("")||"—"}</div>
+ <h3>Units</h3><table>${units.map(([q,u],i)=>`<tr><td>${q===p?"🟦":"🟥"} ${esc(u.c.name)} (${power(u,q)})</td><td><button data-u="${i}" data-a="p">+1</button><button data-u="${i}" data-a="m">−1</button><button data-u="${i}" data-a="s">${u.spent?"Preparar":"Agotar"}</button><button data-u="${i}" data-a="k">Derrotar</button><button data-u="${i}" data-a="h">A la mano</button></td></tr>`).join("")}</table>
+ <div class="row" style="margin-top:10px"><button class="pri" onclick="closeModal();render()">Cerrar</button></div>`);
+ const mb=$("#mbox");
+ mb.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const t=b.dataset.t;
+  if(t==="draw"){draw(p,1);log(`(manual) ${p.name} roba 1.`)}
+  if(t==="disc"&&p.hand.length){const c=p.hand.splice(Math.floor(Math.random()*p.hand.length),1)[0];p.trash.push(c);log(`(manual) ${p.name} descarta ${c.c.name}.`)}
+  if(t==="eddie"){const e=p.eddies.find(e=>e.spent);if(e)e.spent=false;log(`(manual) prepara 1 Eddie.`)}
+  if(t==="temp"){p.temp++;log(`(manual) +1 €$.`)}
+  if(t==="mill"&&p.deck.length){const c=p.deck.pop();p.trash.push(c);log(`(manual) ${c.c.name} al trash.`)}
+  if(t==="recU"){closeModal();modal(`<h2>Trash → mano</h2><div class="row">${p.trash.map((c,i)=>`<button data-r="${i}">${esc(c.c.name)}</button>`).join("")||"Trash vacío"}</div><button onclick="tools()">Volver</button>`);
+   $("#mbox").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const c=p.trash.splice(+b.dataset.r,1)[0];p.hand.push(c);log(`(manual) ${c.c.name} vuelve a la mano.`);tools()});return}
+  tools()});
+ mb.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=p.gigs[+b.dataset.g];g.v=Math.max(1,Math.min(g.s,g.v+ +b.dataset.d));log(`(manual) tu d${g.s} → ${g.v}`);tools()});
+ mb.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>{const g=o.gigs[+b.dataset.rg];g.v=Math.max(1,Math.min(g.s,g.v+ +b.dataset.d));log(`(manual) d${g.s} rival → ${g.v}`);tools()});
+ mb.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{const [q,u]=units[+b.dataset.u],a=b.dataset.a;
+  if(a==="p")u.tmp++;if(a==="m")u.tmp--;if(a==="s")u.spent=!u.spent;if(a==="k")defeat(q,u);
+  if(a==="h"){q.field.splice(q.field.indexOf(u),1);u.gear.forEach(g=>q.hand.push(g));u.gear=[];if(!u.solo)q.hand.push(u)}
+  log(`(manual) ${u.c.name}: ${{p:"+1",m:"−1",s:"agotar/preparar",k:"derrotada",h:"a la mano"}[a]}`);tools()});
+}
+
+/* ================= RENDER ================= */
+function viewer(){return G.p[0].bot?1:G.p[1].bot?0:G.cur}
+function render(){
+ if(!G)return;const v=viewer();
+ $("#pBot").innerHTML=renderPlayer(G.p[v],true,v);$("#pTop").innerHTML=renderPlayer(G.p[1-v],false,1-v);
+ const p=me();
+ $("#turnInfo").innerHTML=`Turno de <b>${p.name}</b> (${p.turns}/7)${G.overtime?' · <span class="bad">OVERTIME</span>':""}<br>€$ disponibles: <b>${avail(p)}</b>${p.temp?` (incl. ${p.temp} temp.)`:""} · Vendido: ${p.sold?"sí":"no"} · Call: ${p.called?"sí":"no"}`;
+ $("#log").innerHTML=G.log.map(l=>`<div>${esc(l)}</div>`).join("");
+ const act=$("#actions");act.innerHTML="";const help=$("#help");
+ const fab=$("#fab");fab.style.display=(!G.over&&!p.bot&&G.mode!=="gig")?"block":"none";fab.onclick=()=>{$("#pop").style.display="none";endTurn()};
+ if(G.over||p.bot){help.textContent=G.over?"Partida terminada.":"El bot está pensando…";return}
+ if(G.mode==="gig"){help.textContent="Elige un dado de tu zona Fixer para ganar un Gig.";return}
+ const b=(t,f,dis)=>{const e=document.createElement("button");e.textContent=t;e.onclick=f;e.disabled=!!dis;act.appendChild(e);return e};
+ b("Call a Legend (1€$)",()=>{callLegend(p);render()},p.called||avail(p)<1||!p.legends.some(l=>!l.face&&!l.gone));
+ const pop=$("#pop");pop.innerHTML="";pop.style.display="none";
+ const bp=(t,f,dis)=>{const e=document.createElement("button");e.textContent=t;e.onclick=ev=>{ev.stopPropagation();pop.style.display="none";f()};e.disabled=!!dis;pop.appendChild(e);return e};
+ if(G.sel&&!G.mode){const s=G.sel;const b=bp;
+  if(s.z==="hand"){const x=p.hand.find(h=>h.uid===s.uid);if(x){
+   b(`Jugar (${effCost(p,x.c)}€$)`,()=>{if(x.c.type==="Gear"){G.mode="gear";render();return}playCard(p,x);G.sel=null;render()},!canPlay(p,x)||(x.c.type==="Program"&&has(x,"Quick")&&false));
+   b("Vender como Eddie",()=>{sell(p,x);G.sel=null;render()},p.sold||!x.c.sell);}}
+  if(s.z==="field"){const u=p.field.find(f=>f.uid===s.uid);if(u){
+   b("Atacar Gigs rivales",()=>{G.sel=null;attack(p,u,"gigs")},!canAttack(p,u)||!canHitGigs(p,u));
+   b("Atacar una Unit agotada…",()=>{G.mode="atk";render()},!canAttack(p,u)||!rival().field.some(x=>x.spent));
+   activations(p,u).forEach(a=>b(`Activar: ${a.card.name}${a.a.cost?` (${a.a.cost}€$)`:""}${a.a.ok?"":" ⚠"}`,()=>{if(a.a.ok)activate(p,u,a);else{u.spent=true;log(`${p.name} activa ${a.card.name} (resolver a mano).`);tools()}G.sel=null;render()},u.spent||u.lag));}}
+  if(s.z==="leg"){const l=p.legends.find(f=>f.uid===s.uid);if(l&&l.face){
+   if((l.c.keywords||[]).includes("GoSolo")&&l.c.cost!=null)b(`Go Solo (${soloCost(p,l)}€$)`,()=>{goSolo(p,l);G.sel=null;render()},l.gone||avail(p)-(payable(p).includes(l)?1:0)<soloCost(p,l));
+   activations(p,l).forEach(a=>b(`Activar${a.a.cost?` (${a.a.cost}€$)`:""}${a.a.ok?"":" ⚠"}: ${a.a.text.slice(0,40)}…`,()=>{if(a.a.ok)activate(p,l,a);else{l.spent=true;log(`${p.name} activa ${l.c.name} (resolver a mano).`);tools()}G.sel=null;render()},l.spent));}}
+  {const s2=G.sel;const all=[...p.hand,...p.field,...p.legends];const x=all.find(h=>h.uid===s2.uid);if(x)b("🔍 Ver carta",()=>zoom(x.c))}
+  b("Cancelar",()=>{G.sel=null;G.mode=null;render()});
+ if(G.sel&&!G.mode&&pop.children.length){setTimeout(()=>{const el=document.querySelector(`#game [data-u="${G.sel?.uid}"]`);if(!el)return;pop.style.display="flex";
+  const r=el.getBoundingClientRect(),W=pop.offsetWidth,H=pop.offsetHeight;let x=r.left+r.width/2-W/2;x=Math.max(4,Math.min(x,innerWidth-W-4));let y=r.top-H-8;if(y<60)y=r.bottom+8;pop.style.left=x+"px";pop.style.top=y+"px"},0)}
+ }
+ b("🛠 Herramientas",()=>tools());
+ const e=b("Terminar turno ▶",()=>endTurn());e.className="pri";
+ help.textContent=G.mode==="atk"?"Elige una Unit rival agotada (marcada).":G.mode==="gear"?"Elige una Unit tuya o Legend boca arriba.":"Toca una carta para ver sus opciones, o arrastra una carta de la mano al Campo (jugar) o a Eddies (vender). ⚠ = efecto a resolver con Herramientas.";
+}
+function renderPlayer(p,mine,idx){
+ const isCur=G.cur===idx,show=mine&&!p.bot;
+ const legs=p.legends.map(l=>l.gone?`<div class="card mini facedown" style="opacity:.3">SOLO</div>`:l.face?`<div>${cardHTML(l.c,`data-z="leg" data-u="${l.uid}" data-p="${idx}"`,"mini "+(l.spent?"spent":"")+(G.sel?.uid===l.uid?" sel":""))}${(l.gear||[]).length?`<div class="hint" style="font-size:10px">⚙ ${l.gear.map(g=>esc(g.c.name)).join(", ")}</div>`:""}</div>`:`<div class="card mini facedown ${l.spent?"spent":""}">LEGEND</div>`).join("");
+ const field=p.field.map(u=>{const pw=power(u,p);const tgt=G.mode==="atk"&&!mine&&u.spent;
+  return `<div style="position:relative">${cardHTML({...u.c,power:pw},`data-z="field" data-u="${u.uid}" data-p="${idx}"`,`mini ${u.spent?"spent":""} ${u.lag?"lag":""} ${G.sel?.uid===u.uid?"sel":""} ${tgt?"tgt":""}`)}${u.gear.length?`<div class="hint" style="font-size:10px">⚙ ${u.gear.map(g=>esc(g.c.name)).join(", ")}</div>`:""}</div>`}).join("")||'<span class="hint">vacío</span>';
+ const gigs=p.gigs.map(g=>`<span class="die">${g.v}<small>d${g.s}</small></span>`).join("")||'<span class="hint">—</span>';
+ const fixer=p.fixer.map(s=>{const pick=mine&&isCur&&G.mode==="gig"&&(s!==20||p.fixer.length===1);return `<span class="die fx ${pick?"pick":""}" ${pick?`data-gig="${s}"`:""}>d${s}</span>`}).join("");
+ const eds=p.eddies.map(e=>`<span class="die fx" style="width:30px;height:40px;${e.spent?"transform:rotate(90deg)":""};border-color:var(--y);color:var(--y)">€$</span>`).join("")||'<span class="hint">—</span>';
+ const hand=show?p.hand.map(x=>cardHTML(x.c,`data-z="hand" data-u="${x.uid}" data-p="${idx}" draggable="true"`,"mini"+(G.sel?.uid===x.uid?" sel":"")+(isCur&&!canPlay(p,x)?" dim":""))).join(""):p.hand.map(()=>`<div class="card mini facedown">CARTA</div>`).join("");
+ setTimeout(bindBoard,0);
+ return `<div class="side"><b style="color:${mine?"var(--c)":"var(--p)"}">${p.name}${isCur?" ◀":""}</b><span class="stat">Gigs <b>${p.gigs.length}</b> · Street Cred <b>${cred(p)}</b> · Mazo ${p.deck.length} · Trash ${p.trash.length} · Mano ${p.hand.length}</span></div>
+ <div class="zone"><div class="lbl">Gigs</div>${gigs}</div>
+ <div class="zone"><div class="lbl">Fixer</div>${fixer||'<span class="hint">vacío</span>'}</div>
+ <div class="row"><div class="zone"><div class="lbl">Legends</div><div class="row">${legs}</div></div><div class="zone" ${show&&isCur?'data-drop="eddies"':""}><div class="lbl">Eddies</div>${eds}</div></div>
+ <div class="zone" ${show&&isCur?'data-drop="field"':""}><div class="lbl">Campo</div><div class="row">${field}</div></div>
+ <div class="zone"><div class="lbl">Mano</div><div class="row hand">${hand}</div></div>`;
+}
+function bindBoard(){
+ document.querySelectorAll("[data-gig]").forEach(e=>e.onclick=()=>{gainGig(me(),+e.dataset.gig);render()});
+ document.querySelectorAll("#game [data-z]").forEach(e=>e.onclick=()=>{
+  if(!G||G.over||me().bot||G.mode==="gig")return;const pi=+e.dataset.p,uidv=+e.dataset.u,z=e.dataset.z,p=me();
+  if(G.mode==="atk"&&pi!==G.cur&&z==="field"){const t=rival().field.find(x=>x.uid===uidv);const u=p.field.find(x=>x.uid===G.sel.uid);if(t&&t.spent&&u){G.mode=null;G.sel=null;attack(p,u,t)}return}
+  if(G.mode==="gear"&&pi===G.cur&&(z==="field"||z==="leg")){const x=p.hand.find(h=>h.uid===G.sel.uid);const host=p.field.find(f=>f.uid===uidv)||p.legends.find(f=>f.uid===uidv&&f.face);if(x&&host){playCard(p,x,host)}G.mode=null;G.sel=null;render();return}
+  if(pi!==G.cur){zoom((z==="field"?rival().field.find(x=>x.uid===uidv):rival().legends.find(x=>x.uid===uidv))?.c);return}
+  G.sel={z,uid:uidv};G.mode=null;render();
+ });
+}
+$("#modal").onclick=e=>{if(e.target.id==="modal"&&!G?.over&&!document.querySelector("#dnone")&&!document.querySelector("#keep"))closeModal()};
+function cardFromEl(el){const z=el.dataset.z,u=+el.dataset.u,p=G&&G.p[+el.dataset.p];if(!p)return null;
+ const x=(z==="hand"?p.hand:z==="field"?p.field:p.legends).find(c=>c.uid===u);if(!x)return null;
+ return z==="field"?{...x.c,power:power(x,p)}:x.c}
+document.addEventListener("mouseover",e=>{const el=e.target.closest("#game [data-z]");const h=$("#hov");
+ if(!el){h.style.display="none";return}const c=cardFromEl(el);if(!c){h.style.display="none";return}
+ h.innerHTML=(imgOf(c)?`<img src="${imgOf(c)}">`:"")+cardHTML(c,"","text");h.style.display="block";
+ const r=el.getBoundingClientRect(),W=310,H=h.offsetHeight;let x=r.right+10;if(x+W>innerWidth)x=r.left-W-10;if(x<4)x=4;
+ let y=Math.min(Math.max(4,r.top+r.height/2-H/2),innerHeight-H-4);h.style.left=x+"px";h.style.top=y+"px"});
+document.addEventListener("scroll",()=>$("#hov").style.display="none",true);
+let DRAG=null;
+document.addEventListener("dragstart",e=>{const el=e.target.closest&&e.target.closest('.hand [data-z="hand"]');if(!el||!G||me().bot||G.over)return;DRAG=+el.dataset.u;$("#hov").style.display="none";$("#pop").style.display="none";try{e.dataTransfer.setData("text","c")}catch(_){}
+ document.querySelectorAll("[data-drop]").forEach(z=>z.classList.add("drop"));});
+document.addEventListener("dragend",()=>{DRAG=null;document.querySelectorAll(".drop").forEach(z=>z.classList.remove("drop"))});
+document.addEventListener("dragover",e=>{if(DRAG!=null&&(e.target.closest("[data-drop]")||e.target.closest('#game [data-z="field"],#game [data-z="leg"]')))e.preventDefault()});
+document.addEventListener("drop",e=>{if(DRAG==null)return;e.preventDefault();const p=me();const x=p.hand.find(h=>h.uid===DRAG);DRAG=null;document.querySelectorAll(".drop").forEach(z=>z.classList.remove("drop"));if(!x||G.mode==="gig")return;
+ const host=e.target.closest('#game [data-z="field"],#game [data-z="leg"]');const zone=e.target.closest("[data-drop]");
+ if(zone&&zone.dataset.drop==="eddies"){if(p.sold){log("Ya has vendido una carta este turno.")}else if(!x.c.sell){log(`${x.c.name} no se puede vender.`)}else sell(p,x)}
+ else{if(!canPlay(p,x)){log(`No tienes €$ suficientes para ${x.c.name}.`)}
+  else if(x.c.type==="Gear"){const h=host&&(+host.dataset.p===G.cur)?(p.field.find(f=>f.uid===+host.dataset.u)||p.legends.find(l=>l.uid===+host.dataset.u&&l.face)):null;playCard(p,x,h||undefined)}
+  else playCard(p,x)}
+ G.sel=null;render()});
+document.addEventListener("click",e=>{if(!e.target.closest("#pop")&&!e.target.closest("#game [data-z]")&&$("#pop").style.display==="flex"){$("#pop").style.display="none"}});
+document.addEventListener("scroll",()=>$("#pop").style.display="none",true);
+fillDeckSelects();loadImgs();
+</script>
+</body>
+</html>
