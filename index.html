@@ -99,6 +99,7 @@ body:not(.is-admin) .admin-only{display:none!important}
 body.ingame{padding-bottom:130px}
 #fab{bottom:14px}
 @media(max-width:700px){#dock{padding-right:14px;padding-bottom:70px}}
+.trz{cursor:pointer;min-width:110px}.trz .card{pointer-events:none}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -1093,11 +1094,25 @@ function renderPlayer(p,mine,idx){
  return `<div class="side"><b style="color:${mine?"var(--c)":"var(--p)"}">${p.name}${isCur?" ◀":""}</b><span class="stat">Gigs <b>${p.gigs.length}</b> · Street Cred <b>${cred(p)}</b> · Mazo ${p.deck.length} · Trash ${p.trash.length} · Mano ${p.hand.length}</span></div>
  <div class="zone"><div class="lbl">Gigs</div>${gigs}</div>
  <div class="zone"><div class="lbl">Fixer</div>${fixer||'<span class="hint">vacío</span>'}</div>
- <div class="row"><div class="zone"><div class="lbl">Legends</div><div class="row">${legs}</div></div><div class="zone eddz" ${show&&isCur?'data-drop="eddies"':""}><div class="lbl">Eddies</div>${eds}${show&&isCur&&!p.sold?'<div class="hint sellhint">⬇ Arrastra aquí una carta con €$ para venderla</div>':""}</div></div>
+ <div class="row"><div class="zone"><div class="lbl">Legends</div><div class="row">${legs}</div></div><div class="zone eddz" ${show&&isCur?'data-drop="eddies"':""}><div class="lbl">Eddies</div>${eds}${show&&isCur&&!p.sold?'<div class="hint sellhint">⬇ Arrastra aquí una carta con €$ para venderla</div>':""}</div><div class="zone trz" data-trash="${idx}" title="Ver trash"><div class="lbl">Trash (${p.trash.length})</div>${p.trash.length?cardHTML(p.trash[p.trash.length-1].c,"","mini"):'<span class="hint">vacío</span>'}<div class="hint" style="font-size:10px;margin-top:4px">Toca para ver</div></div></div>
  <div class="zone" ${show&&isCur?'data-drop="field"':""}><div class="lbl">Campo</div><div class="row">${field}</div></div>
  <div class="zone"><div class="lbl">Mano</div><div class="row hand">${hand}</div></div>`;
 }
+function showTrash(i){const q=G.p[i],mine=!q.bot&&i===G.cur&&!G.over;
+ modal(`<h2>Trash de ${esc(q.name)} (${q.trash.length})</h2>${mine?'<p class="hint">Si una carta te pide coger algo del trash, toca la carta y elige qué hacer.</p>':""}
+ <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))">${q.trash.map((x,k)=>`<div data-tk="${k}">${cardHTML(x.c,"","mini")}</div>`).join("")||'<span class="hint">Vacío</span>'}</div>
+ <div class="row" style="margin-top:10px"><button class="pri" onclick="closeModal()">Cerrar</button></div>`);
+ $("#mbox").querySelectorAll("[data-tk]").forEach(el=>el.onclick=()=>{const k=+el.dataset.tk,x=q.trash[k];
+  modal(`<div style="display:flex;gap:14px;flex-wrap:wrap">${imgOf(x.c)?`<img src="${imgOf(x.c)}" style="width:220px;border-radius:12px">`:""}<div style="flex:1;min-width:200px">${cardHTML(x.c,"","text")}</div></div>
+  <div class="row" style="margin-top:10px">${mine?`<button class="pri" id="tH">A la mano</button>${x.c.type==="Unit"?'<button id="tF">Jugar gratis al campo</button>':""}<button id="tB">Al fondo del mazo</button>`:""}<button id="tV">Volver</button></div>`);
+  const take=()=>q.trash.splice(q.trash.indexOf(x),1);
+  if(mine){$("#tH").onclick=()=>{take();q.hand.push(x);log(`${q.name} añade ${x.c.name} del trash a la mano.`);closeModal();render()};
+   if($("#tF"))$("#tF").onclick=()=>{take();x.spent=false;x.lag=true;x.tmp=0;x.gear=[];x.grant=[];q.field.push(x);log(`${q.name} juega ${x.c.name} gratis desde el trash.`);runFx(x.c,"play",q,x);closeModal();render()};
+   $("#tB").onclick=()=>{take();q.deck.unshift(x);log(`${q.name} pone ${x.c.name} del trash al fondo del mazo.`);closeModal();render()};}
+  $("#tV").onclick=()=>showTrash(i)});
+}
 function bindBoard(){
+ document.querySelectorAll("[data-trash]").forEach(e=>e.onclick=()=>showTrash(+e.dataset.trash));
  document.querySelectorAll("[data-gig]").forEach(e=>e.onclick=()=>{gainGig(me(),+e.dataset.gig);render()});
  document.querySelectorAll("#game [data-z]").forEach(e=>e.onclick=()=>{
   if(!G||G.over||me().bot||G.mode==="gig")return;const pi=+e.dataset.p,uidv=+e.dataset.u,z=e.dataset.z,p=me();
