@@ -559,7 +559,16 @@ function parseSentence(s){
   else if(/control a min gig/.test(c))cond="minGig";else if(/control a value-pair/.test(c))cond="pair";
   else if(/all friendly legends are face-up/.test(c))cond="allUp";else if(/control 2 or more gigs with different/.test(c))cond="diff2";
   else return null; s=cm[2]}
- const A=(d,n)=>({do:d,n,cond});
+ let optq=false;s=s.replace(/^Then,\s*/i,"");if(/^you may /i.test(s)){optq=true;s=s.replace(/^you may /i,"");s=s[0].toUpperCase()+s.slice(1)}
+ const A=(d,n,x)=>Object.assign({do:d,n,cond,opt:optq},x||{});
+ if(m=s.match(/^Search the top (\d+) cards? of your deck/i)){const n=+m[1];return A("look",n,{look:"search"})}
+ if(/^(Search|Look at) the top card of your deck/i.test(s))return A("look",1,{look:"search"});
+ if(/^Reveal (up to \d+|any number of|an?|\d+) .*add (it|them) to your hand/i.test(s)||/^Reveal .* and add it to your hand/i.test(s)){const mm=s.match(/up to (\d+)/i);const ty=(s.match(/\b(Gears?|Programs?|Units?)\b/i)||[])[1];return A("lookCfg",mm?+mm[1]:/any number/i.test(s)?99:1,{ty:ty?ty.replace(/s$/i,"").replace(/^./,x=>x.toUpperCase()):null})}
+ if(/^Add (\d+|one) to your hand/i.test(s))return A("lookCfg",1,{ty:null});
+ if(/^(You may )?add 1 more for each/i.test(s)||/^Bottom-deck the rest/i.test(s)||/^You may trash it/i.test(s)||/^Otherwise, keep it/i.test(s))return A("noop");
+ if(/^Reveal the top card of your deck and add it to your hand/i.test(s))return A("draw",1);
+ if(/^Reveal the top card of your deck\.?$/i.test(s))return A("look",1,{look:"reveal"});
+ if(/^Trash the top card of your deck/i.test(s))return A("mill",1);
  if(m=s.match(/^(?:then, )?draw (\d+)/i))return A("draw",+m[1]);
  if(/^Defeat all other Units/i.test(s))return A("wipe");
  if(m=s.match(/^Defeat a rival Unit with power (\d+) or less/i))return A("defeat",+m[1]);
@@ -824,11 +833,50 @@ function runFx(card,on,p,self,done){
   doActs(card,{acts:[f]},p,self);
  }
 }
-function doActs(card,opt,p,self){
- const o=G.p[1-G.p.indexOf(p)];let milled=[];
- for(const f of opt.acts){
+function actLabel(f){const L={draw:`robar ${f.n}`,defeat:`derrotar una Unit rival con poder ${f.n} o menos`,defeatCost:`derrotar una Unit rival de coste ${f.n} o menos`,bumpGig:`subir un Gig hasta ${f.n}`,dropGig:`bajar un Gig rival hasta ${f.n}`,swap:"intercambiar un Gig tuyo por uno rival",freeCall:"hacer Call a una Legend gratis",spendRival:"agotar una Unit rival",recur:"recuperar una carta del trash",mill:`mandar ${f.n} carta(s) del mazo al trash`,trashHand:"hacer descartar al rival"};return L[f.do]||"usar este efecto"}
+function lookTop(p,n,o){o=o||{};const top=p.deck.slice(-n).reverse();let left=o.picks==null?99:o.picks;const st=top.map(()=>o.title?"bottom":"top");
+ const draw=()=>{modal(`<h2>${esc(o.title||"Mirar el mazo")}: ${top.length} carta(s) superiores</h2>${o.text?`<p class="hint">${esc(o.text)}</p>`:""}
+ ${o.picks!=null?`<p>Puedes añadir a la mano: <b>${left}</b>${o.ty?` (solo ${o.ty})`:""}. El resto ${o.title?"va al fondo del mazo":"se queda donde elijas"}.</p>`:""}
+ <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${top.map((x,k)=>`<div>${cardHTML(x.c,"","mini")}<div class="row" style="margin:4px 0;gap:3px">
+ ${[["hand","Mano"],["trash","Trash"],["bottom","Fondo"]].concat(o.title&&!/trash it|keep it/i.test(o.text||"")?[]:[["top","Arriba"]]).concat(o.playFree&&x.c.type!=="Program"?[["play","Jugar gratis"]]:[]).map(([v,t])=>`<button data-k="${k}" data-v="${v}" style="padding:3px 6px;font-size:11px;${st[k]===v?"border-color:var(--y);color:var(--y)":""}" ${v==="hand"&&o.picks!=null&&st[k]!=="hand"&&(left<=0||(o.ty&&x.c.type!==o.ty))?"disabled":""}>${t}</button>`).join("")}</div></div>`).join("")}</div>
+ <div class="row" style="margin-top:10px"><button class="pri" id="lkOk">Hecho</button></div>`);
+ $("#mbox").querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=+b.dataset.k;if(st[k]==="hand")left++;st[k]=b.dataset.v;if(st[k]==="hand")left--;draw()});
+ $("#lkOk").onclick=()=>{const def=o.title?"bottom":"top";top.forEach(x=>p.deck.splice(p.deck.indexOf(x),1));const back=[];
+  top.forEach((x,k)=>{const v=st[k]==="top"&&o.title?def:st[k];
+   if(v==="hand"){p.hand.push(x)}else if(v==="trash"){p.trash.push(x)}else if(v==="bottom"){p.deck.unshift(x)}else if(v==="play"){x.spent=false;x.lag=true;x.tmp=0;x.gear=[];x.grant=[];if(x.c.type==="Unit"){p.field.push(x);runFx(x.c,"play",p,x)}else if(x.c.type==="Gear"){const h=p.field[0];if(h)h.gear.push(x);else p.trash.push(x)}}else back.push(x)});
+  back.reverse().forEach(x=>p.deck.push(x));
+  const c={hand:0,trash:0,bottom:0,play:0,top:0};st.forEach(v=>c[v]=(c[v]||0)+1);
+  log(`${p.name} mira ${top.length} del mazo: ${c.hand} a la mano, ${c.trash} al trash, ${c.bottom} al fondo${c.play?`, ${c.play} jugada(s)`:""}.`);
+  closeModal();(o.onDone||render)()}};draw()}
+function deckMenu(i){const p=G.p[i],mine=isHumanLocal(p)&&i===G.cur&&!G.over&&canAct();
+ if(!mine){modal(`<h2>Mazo de ${esc(p.name)}</h2><p>${p.deck.length} cartas.</p><button class="pri" onclick="closeModal()">Cerrar</button>`);return}
+ modal(`<h2>Tu mazo (${p.deck.length})</h2><p class="hint">Para efectos que el motor no resuelve solo.</p><div class="row">
+ <button id="dmD">Robar 1</button><button id="dmL">Mirar las superiores…</button><button id="dmT">Superior al trash</button><button id="dmR">Revelar la superior</button><button id="dmS">Barajar</button></div>
+ <div class="row" style="margin-top:8px"><button class="pri" onclick="closeModal()">Cerrar</button></div>`);
+ $("#dmD").onclick=()=>{draw(p,1);log(`(manual) ${p.name} roba 1.`);closeModal();render()};
+ $("#dmT").onclick=()=>{if(p.deck.length){const c=p.deck.pop();p.trash.push(c);log(`(manual) ${p.name} manda ${c.c.name} del mazo al trash.`)}closeModal();render()};
+ $("#dmR").onclick=()=>{const c=p.deck[p.deck.length-1];if(c){log(`${p.name} revela ${c.c.name}.`);zoom(c.c)}};
+ $("#dmS").onclick=()=>{shuffle(p.deck);log(`${p.name} baraja su mazo.`);closeModal();render()};
+ $("#dmL").onclick=()=>{modal(`<h2>¿Cuántas cartas miras?</h2><div class="row">${[1,2,3,4,5,6].map(n=>`<button data-n="${n}">${n}</button>`).join("")}</div>`);$("#mbox").querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>lookTop(p,+b.dataset.n,{}))}}
+const isHumanLocal=p=>!p.bot&&(!G.online||G.p.indexOf(p)===G.me);
+function doActs(card,opt,p,self,start,milledIn){
+ const o=G.p[1-G.p.indexOf(p)];let milled=milledIn||[];const acts=opt.acts;
+ for(let i=start||0;i<acts.length;i++){const f=acts[i];
   if(G.over)return;
   if(f.cond&&!condOk(f.cond,p,self)){log(`  (${card.name}: condición no cumplida)`);continue}
+  if(f.do==="noop"||f.do==="lookCfg")continue;
+  if(f.do==="look"){let cfg=acts.slice(i+1).find(a=>a.do==="lookCfg");const n=f.n;
+   const top=p.deck.slice(-n).reverse();if(!top.length)continue;
+   const picks=f.look==="reveal"?1:(cfg?cfg.n:/trash it/i.test(card.text)?0:1),ty=cfg?cfg.ty:null;
+   const playFree=/You may play it for free/i.test(card.text);
+   if(!isHumanLocal(p)){// bot: auto
+    let got=0;top.forEach(c=>{if(got<picks&&(!ty||c.c.type===ty)){p.deck.splice(p.deck.indexOf(c),1);p.hand.push(c);got++}});
+    top.forEach(c=>{if(p.deck.includes(c)){p.deck.splice(p.deck.indexOf(c),1);p.deck.unshift(c)}});log(`  ${card.name}: ${p.name} busca en las ${n} superiores y coge ${got}.`);continue}
+   lookTop(p,n,{title:card.name,text:card.textES||card.text,picks,ty,playFree,onDone:()=>{doActs(card,opt,p,self,i+1,milled);render()}});return}
+  if(f.opt&&isHumanLocal(p)){const lbl=actLabel(f);
+   modal(`<h2>${esc(card.name)}</h2><p>¿Quieres ${esc(lbl)}?</p><div class="row"><button class="pri" id="yY">Sí</button><button id="yN">No</button></div>`);
+   $("#yY").onclick=()=>{closeModal();doActs(card,{acts:[Object.assign({},f,{opt:false})]},p,self);doActs(card,opt,p,self,i+1,milled);render()};
+   $("#yN").onclick=()=>{closeModal();log(`  ${p.name} decide no usar el efecto de ${card.name}.`);doActs(card,opt,p,self,i+1,milled);render()};return}
   switch(f.do){
    case"draw":draw(p,f.n);log(`  ${card.name}: ${p.name} roba ${f.n}.`);break;
    case"buff":if(self){self.tmp+=f.n;log(`  ${self.c.name} +${f.n} de poder.`)}break;
@@ -856,6 +904,7 @@ function doActs(card,opt,p,self){
    case"bottomLow":{const t=o.field.slice().sort((a,b)=>power(a,o)-power(b,o))[0];if(t)bottom(o,t);break}
    case"bottomZero":{const t=o.field.find(u=>power(u,o)===0);if(t)bottom(o,t);break}
    case"bottomZeroAll":o.field.filter(u=>power(u,o)===0).forEach(u=>bottom(o,u));break;
+   case"__x":break;
    case"sellTop":if(p.deck.length){p.deck.pop();p.eddies.push({spent:false,uid:++uid});log(`  Vende la carta superior del mazo.`)}break;
   }
  }
@@ -1108,7 +1157,7 @@ function renderPlayer(p,mine,idx){
  return `<div class="side"><b style="color:${mine?"var(--c)":"var(--p)"}">${p.name}${isCur?" ◀":""}</b><span class="stat">Gigs <b>${p.gigs.length}</b> · Street Cred <b>${cred(p)}</b> · Mazo ${p.deck.length} · Trash ${p.trash.length} · Mano ${p.hand.length}</span></div>
  <div class="zone"><div class="lbl">Gigs</div>${gigs}</div>
  <div class="zone"><div class="lbl">Fixer</div>${fixer||'<span class="hint">vacío</span>'}</div>
- <div class="row"><div class="zone"><div class="lbl">Legends</div><div class="row">${legs}</div></div><div class="zone eddz" ${show&&isCur?'data-drop="eddies"':""}><div class="lbl">Eddies</div>${eds}${show&&isCur&&!p.sold?'<div class="hint sellhint">⬇ Arrastra aquí una carta con €$ para venderla</div>':""}</div><div class="zone trz" data-trash="${idx}" title="Ver trash"><div class="lbl">Trash (${p.trash.length})</div>${p.trash.length?cardHTML(p.trash[p.trash.length-1].c,"","mini"):'<span class="hint">vacío</span>'}<div class="hint" style="font-size:10px;margin-top:4px">Toca para ver</div></div></div>
+ <div class="row"><div class="zone"><div class="lbl">Legends</div><div class="row">${legs}</div></div><div class="zone eddz" ${show&&isCur?'data-drop="eddies"':""}><div class="lbl">Eddies</div>${eds}${show&&isCur&&!p.sold?'<div class="hint sellhint">⬇ Arrastra aquí una carta con €$ para venderla</div>':""}</div><div class="zone trz" data-deck="${idx}" title="Mazo"><div class="lbl">Mazo (${p.deck.length})</div><div class="card mini facedown" style="min-height:0;aspect-ratio:63/88;width:78px">${p.deck.length}</div><div class="hint" style="font-size:10px;margin-top:4px">Toca: robar / mirar</div></div><div class="zone trz" data-trash="${idx}" title="Ver trash"><div class="lbl">Trash (${p.trash.length})</div>${p.trash.length?cardHTML(p.trash[p.trash.length-1].c,"","mini"):'<span class="hint">vacío</span>'}<div class="hint" style="font-size:10px;margin-top:4px">Toca para ver</div></div></div>
  <div class="zone" ${show&&isCur?'data-drop="field"':""}><div class="lbl">Campo</div><div class="row">${field}</div></div>
  <div class="zone"><div class="lbl">Mano</div><div class="row hand">${hand}</div></div>`;
 }
@@ -1127,6 +1176,7 @@ function showTrash(i){const q=G.p[i],mine=!q.bot&&i===G.cur&&!G.over;
 }
 function bindBoard(){
  document.querySelectorAll("[data-trash]").forEach(e=>e.onclick=()=>showTrash(+e.dataset.trash));
+ document.querySelectorAll("[data-deck]").forEach(e=>e.onclick=()=>deckMenu(+e.dataset.deck));
  document.querySelectorAll("[data-gig]").forEach(e=>e.onclick=()=>{gainGig(me(),+e.dataset.gig);render()});
  document.querySelectorAll("#game [data-z]").forEach(e=>e.onclick=()=>{
   if(!G||G.over||me().bot||G.mode==="gig"||!canAct())return;const pi=+e.dataset.p,uidv=+e.dataset.u,z=e.dataset.z,p=me();
