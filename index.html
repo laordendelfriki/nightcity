@@ -94,6 +94,11 @@ body:not(.is-admin) .admin-only{display:none!important}
 .dk .ctl{position:absolute;inset:auto 0 0 0;display:none;justify-content:space-between}
 .dk .it:hover .ctl{display:flex}
 .dk .ctl button{padding:0 7px;font-size:13px}
+#dock{position:fixed;left:0;right:0;bottom:0;z-index:34;background:#0e0e18f2;border-top:2px solid var(--c);padding:8px 190px 8px 14px;display:none;gap:12px;align-items:center;flex-wrap:wrap;backdrop-filter:blur(4px)}
+#dock .stat{font-size:12px;min-width:200px}#dock .row{min-height:0;margin:0}#dock #help{margin:0;font-size:11px;flex-basis:100%}
+body.ingame{padding-bottom:130px}
+#fab{bottom:14px}
+@media(max-width:700px){#dock{padding-right:14px;padding-bottom:70px}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -130,11 +135,7 @@ body:not(.is-admin) .admin-only{display:none!important}
     <div class="panel me" id="pBot"></div>
    </div>
    <div>
-    <div class="panel">
-     <div class="stat" id="turnInfo"></div>
-     <div class="row" style="margin-top:8px" id="actions"></div>
-     <p class="hint" id="help"></p>
-    </div>
+
     <div class="panel"><div class="lbl hint">Registro</div><div id="log"></div></div>
    </div>
   </div>
@@ -205,7 +206,7 @@ Acciones (do): draw n · buff n (esta carta +n poder este turno) · buffAll n (t
 <p class="hint">Fuente: Comprehensive Rules oficiales (cyberpunktcg.com, actualizadas 29/10/2026). Si una carta contradice la regla, manda la carta.</p>
 </div></section>
 
-<div id="toasts"></div><button id="fab" class="pri">Terminar turno ▶</button><div id="hov"></div><div id="login" style="position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:50"><div class="box panel" style="width:94%">
+<div id="dock"><div class="stat" id="turnInfo"></div><div class="row" id="actions"></div><p class="hint" id="help"></p></div><div id="toasts"></div><button id="fab" class="pri">Terminar turno ▶</button><div id="hov"></div><div id="login" style="position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:50"><div class="box panel" style="width:94%">
 <h2>Tu cuenta</h2><p class="hint">Inicia sesión para guardar tus mazos en la nube y tenerlos en cualquier dispositivo. Es la misma cuenta que La Orden Brawl.</p>
 <button class="gbtn" id="lgG">🟢 Entrar con Google</button><p class="hint" style="text-align:center">o con tu email</p>
 <input id="lgE" type="email" placeholder="Email" autocomplete="email"><input id="lgP" type="password" placeholder="Contraseña (mínimo 6)" autocomplete="current-password">
@@ -653,7 +654,7 @@ function zoom(c){if(!c)return;modal(`<div style="display:flex;gap:14px;flex-wrap
 
 function modal(html){$("#mbox").innerHTML=html;$("#modal").style.display="flex"}
 function closeModal(){$("#modal").style.display="none"}
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));b.classList.add("on");document.querySelectorAll("section").forEach(s=>s.classList.remove("on"));$("#"+b.dataset.t).classList.add("on");if(b.dataset.t==="build")renderBuild();if(b.dataset.t==="db")renderDB();if(b.dataset.t==="play")fillDeckSelects()});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));b.classList.add("on");document.querySelectorAll("section").forEach(s=>s.classList.remove("on"));$("#"+b.dataset.t).classList.add("on");if(b.dataset.t==="build")renderBuild();if(b.dataset.t==="db")renderDB();if(b.dataset.t==="play")fillDeckSelects();$("#dock").style.display=(b.dataset.t==="play"&&G)?"flex":"none";$("#fab").style.visibility=b.dataset.t==="play"?"visible":"hidden"});
 
 /* ================= DECK VALIDATION ================= */
 function validate(d){
@@ -739,7 +740,7 @@ $("#startBtn").onclick=()=>{
  let a,b;do{a=rnd(20);b=rnd(20)}while(a===b);G.cur=a>b?0:1;
  log(`Tirada inicial d20: ${G.p[0].name} ${a} – ${G.p[1].name} ${b}. Empieza ${G.p[G.cur].name}.`);
  const f=G.p[G.cur];f.legends[0].spent=f.legends[1].spent=true;f.skipReady=true;
- $("#setup").style.display="none";$("#game").style.display="block";
+ $("#setup").style.display="none";$("#game").style.display="block";$("#dock").style.display="flex";document.body.classList.add("ingame");
  // mulligan
  const humans=G.p.filter(p=>!p.bot);
  G.p.filter(p=>p.bot).forEach(p=>{if(!p.hand.some(x=>x.c.cost<=2&&x.c.type==="Unit")){mulligan(p)}});
@@ -1077,7 +1078,6 @@ function render(){
   const r=el.getBoundingClientRect(),W=pop.offsetWidth,H=pop.offsetHeight;let x=r.left+r.width/2-W/2;x=Math.max(4,Math.min(x,innerWidth-W-4));let y=r.top-H-8;if(y<60)y=r.bottom+8;pop.style.left=x+"px";pop.style.top=y+"px"},0)}
  }
  b("🛠 Herramientas",()=>tools());
- const e=b("Terminar turno ▶",()=>endTurn());e.className="pri";
  help.textContent=G.mode==="atk"?"Elige una Unit rival agotada (marcada).":G.mode==="gear"?"Elige una Unit tuya o Legend boca arriba.":"Toca una carta para ver sus opciones, o arrastra una carta de la mano al Campo (jugar) o a Eddies (vender). ⚠ = efecto a resolver con Herramientas.";
 }
 function renderPlayer(p,mine,idx){
